@@ -1,50 +1,63 @@
-# Welcome to your Expo app 👋
+# TastyTabs 🍌
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**High-Performance Recipe Discovery & Vault**
 
-## Get started
+## Project Overview
 
-1. Install dependencies
+**TastyTabs** is a native mobile application built using **React Native** and **Expo SDK 54+**. By leveraging the **Expo Router (/app structure)**, the app implements a file-based routing system that inherently supports **Tabs**, **Stacks**, and **Drawer** navigation.
 
-   ```bash
-   npm install
-   ```
+The app connects to **TheMealDB API** to fetch global culinary data and uses a local persistence layer to allow users to manage their own recipe vault with full **CRUD** (Create, Read, Update, Delete) capabilities.
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## 🚀 Key Features
 
-In the output, you'll find options to open the app in a
+* **File-Based Navigation:** Zero-config routing using the `/app` directory.
+* **Triple-Threat Navigation:**
+* **(drawer):** Side-menu for User Settings and App Info.
+* **(tabs):** Bottom navigation for *Home*, *Search*, and *Favorites*.
+* **[id]:** Dynamic stack routing for detailed recipe views.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+* **The Vault (Privacy-First CRUD):**
+* **Create:** "Heart" a recipe to save it to local storage.
+* **Read:** Access your saved collection instantly.
+* **Update:** Add/Edit personal "Chef Notes" and ratings on saved meals.
+* **Delete:** Remove recipes from the vault with a swipe.
 
-## Get a fresh project
 
-When you're ready, run:
 
-```bash
-npm run reset-project
+---
+
+## 🛠️ Technical Stack
+
+* **Framework:** React Native + Expo (Managed Workflow).
+* **Routing:** `expo-router` (Native Navigation).
+* **API:** RESTful integration with [TheMealDB](https://www.themealdb.com/api.php).
+* **Persistence:** `expo-sqlite` or `AsyncStorage` (Local-only, privacy-focused).
+* **UI:** NativeWind (Tailwind CSS for Mobile) or StyleSheet for a lean, non-Electron feel.
+
+---
+
+## 📂 Project Structure (`/app` Pattern)
+
+```text
+TastyTabs/
+├── app/                      # EXPO ROUTER CORE
+│   ├── (drawer)/             # Drawer Navigation Group
+│   │   ├── _layout.tsx       # Drawer config
+│   │   ├── (tabs)/           # Tab Navigation (Nested in Drawer)
+│   │   │   ├── _layout.tsx   # Tab config
+│   │   │   ├── index.tsx     # Home Screen
+│   │   │   ├── search.tsx    # Search Screen
+│   │   │   └── vault.tsx     # CRUD / Favorites Screen
+│   │   └── settings.tsx      # Settings Screen
+│   ├── recipe/               # Stack Navigation Group
+│   │   └── [id].tsx          # Dynamic Recipe Detail Page
+│   └── _layout.tsx           # Root Layout (Providers)
+├── components/               # Atomic UI Components
+├── constants/                # Colors & API Keys
+├── hooks/                    # Custom CRUD and API hooks
+└── services/                 # API client (Axios/Fetch)
+
 ```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
