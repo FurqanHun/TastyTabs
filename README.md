@@ -10,7 +10,7 @@ The app connects to **TheMealDB API** to fetch global culinary data and uses a l
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
 * **File-Based Navigation:** Zero-config routing using the `/app` directory.
 * **Triple-Threat Navigation:**
@@ -29,7 +29,7 @@ The app connects to **TheMealDB API** to fetch global culinary data and uses a l
 
 ---
 
-## 🛠️ Technical Stack
+## Technical Stack
 
 * **Framework:** React Native + Expo (Managed Workflow).
 * **Routing:** `expo-router` (Native Navigation).
@@ -39,7 +39,7 @@ The app connects to **TheMealDB API** to fetch global culinary data and uses a l
 
 ---
 
-## 📂 Project Structure (`/app` Pattern)
+## Project Structure (`/app` Pattern)
 
 ```text
 TastyTabs/
