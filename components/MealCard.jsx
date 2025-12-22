@@ -1,68 +1,69 @@
+import {
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+  StyleSheet,
+} from "react-native";
+import { useRouter } from "expo-router";
 
-import { Image, Linking, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
-
-export const MealCard = ({ meal }) => {
+export const MealCard = ({ meal, isHero }) => {
   const { width } = useWindowDimensions();
+  const router = useRouter();
 
-  const cardWidth = width > 1200 ? width / 4 - 24 : width > 900 ? width / 3 - 24 : width > 600 ? width / 2 - 18 : width - 24;
-  const imageHeight = cardWidth * 0.6; 
+  const cardWidth = isHero
+    ? width - 24
+    : width > 900
+      ? width / 3 - 24
+      : width > 600
+        ? width / 2 - 18
+        : width - 24;
 
   return (
-    <View
-      style={{
-        width: cardWidth,
-        backgroundColor: "#fff",
-        marginVertical: 10,
-        borderRadius: 16,
-        overflow: "hidden",
-        elevation: 5,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      }}
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={() => router.push(`/recipe/${meal.idMeal}`)}
+      style={[styles.card, { width: cardWidth }]}
     >
       <Image
         source={{ uri: meal.strMealThumb }}
-        style={{ width: "100%", height: imageHeight }}
-        resizeMode="cover"
+        style={[styles.image, { height: isHero ? 220 : 150 }]}
       />
-
-      <View style={{ padding: 12 }}>
-        <Text style={{ fontSize: 16, fontWeight: "700", color: "#333" }}>
+      <View style={styles.info}>
+        <Text style={[styles.name, { fontSize: isHero ? 20 : 16 }]}>
           {meal.strMeal}
         </Text>
-
-        <Text style={{ color: "#888", marginVertical: 4, fontSize: 12 }}>
-          {meal.strArea} • {meal.strCategory || "Unknown"}
-        </Text>
-
-        <Text numberOfLines={3} style={{ marginVertical: 6, color: "#555", lineHeight: 18, fontSize: 14 }}>
-          {meal.strInstructions}
-        </Text>
-
-        {meal.strYoutube && (
-          <TouchableOpacity
-            onPress={() => Linking.openURL(meal.strYoutube)}
-            style={{
-              marginTop: 6,
-              paddingVertical: 4,
-              paddingHorizontal: 10,
-              backgroundColor: "#ff6347",
-              borderRadius: 8,
-              alignSelf: "flex-start",
-            }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 12 }}>
-              ▶ Watch on YouTube
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        <Text style={{ marginTop: 8, fontSize: 10, color: "#aaa", textAlign: "right" }}>
-          ID: {meal.idMeal}
-        </Text>
+        <View style={styles.badgeRow}>
+          <View style={styles.categoryBadge}>
+            <Text style={styles.badgeText}>{meal.strCategory}</Text>
+          </View>
+          <Text style={styles.areaText}>{meal.strArea}</Text>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: "#fff",
+    margin: 6,
+    borderRadius: 16,
+    elevation: 4,
+    overflow: "hidden",
+  },
+  image: { width: "100%" },
+  info: { padding: 12 },
+  name: { fontWeight: "700", color: "#333", marginBottom: 6 },
+  badgeRow: { flexDirection: "row", alignItems: "center" },
+  categoryBadge: {
+    backgroundColor: "#FF634715",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  badgeText: { color: "#FF6347", fontSize: 10, fontWeight: "bold" },
+  areaText: { color: "#888", fontSize: 12 },
+});
