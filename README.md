@@ -58,6 +58,8 @@ TastyTabs/
 ├── components/               # Atomic UI Components
 ├── constants/                # Colors & API Keys
 ├── hooks/                    # Custom CRUD and API hooks
-└── services/                 # API client (Axios/Fetch)
-
+└── api/                 # API client (Axios/Fetch)
+    └── mealdetail.js         # Meal Detail API Client
+    └── listallmeals.js       # List All Meals API Client 
+    └── fetchcategory.js       # Fetch Category API Client
 ```

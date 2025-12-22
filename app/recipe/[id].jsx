@@ -10,20 +10,15 @@ import {
 } from "react-native";
 import { useLocalSearchParams, Stack } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
+import { fetchMealById } from "../../api/mealdetail";
 
 export default function RecipeDetail() {
   const { id } = useLocalSearchParams();
 
   const { data: meal, isLoading } = useQuery({
     queryKey: ["meal", id],
-    queryFn: async () => {
-      const res = await axios.get(
-        `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`,
-      );
-      return res.data.meals[0];
-    },
+    queryFn: () => fetchMealById(id),
   });
 
   // 🦍 Helper to get ingredients and measures
