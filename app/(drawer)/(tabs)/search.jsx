@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,15 +10,44 @@ import {
   TouchableOpacity,
   View,
   useWindowDimensions,
+  ScrollView,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-
 import { fetchCategories } from "../../../api/fetchcategories";
 import { fetchMeals } from "../../../api/listallmeals";
+import { searchMealsByName } from "../../../api/search";
 import { MealCard } from "../../../components/MealCard";
-import { getAllMeals } from "../../../store/Slices/recipeSlice";
+import { getAllMeals, appendMeals } from "../../../store/Slices/recipeSlice";
 
-const PAGE_SIZE = 12;
+// Helper Component
+const LoadingChips = () => (
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={styles.horizontalList}
+  >
+    {[1, 2, 3, 4, 5].map((i) => (
+      <View
+        key={i}
+        style={[
+          styles.chip,
+          {
+            backgroundColor: "#f0f0f0",
+            borderColor: "#f0f0f0",
+            width: 80,
+            height: 35,
+          },
+        ]}
+      />
+    ))}
+  </ScrollView>
+);
+
+const getItemLayout = (data, index) => ({
+  length: 240,
+  offset: 240 * index,
+  index,
+});
 
 export default function SearchScreen() {
   const dispatch = useDispatch();
@@ -26,38 +55,65 @@ export default function SearchScreen() {
   const { allmeals } = useSelector((state) => state.recipe);
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
   const [sort, setSort] = useState("NEW");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+
+  // Responsive Grid
   const numColumns = width > 1024 ? 3 : width > 768 ? 2 : 1;
   const listKey = `cols-${numColumns}`;
 
+  // Debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Smart Query
   const {
     data: mealsData,
     isLoading: mealsLoading,
     isFetching: mealsFetching,
   } = useQuery({
-    queryKey: ["meals"],
-    queryFn: () => fetchMeals(50),
+    queryKey: ["meals", debouncedSearch],
+    queryFn: () => {
+      if (debouncedSearch.trim() === "") {
+        return fetchMeals(12);
+      } else {
+        return searchMealsByName(debouncedSearch);
+      }
+    },
   });
 
-  const { data: catData } = useQuery({
+  const { data: catData, isLoading: catLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: fetchCategories,
   });
 
   useEffect(() => {
     if (mealsData) {
-      // filter duplicates
       const uniqueMeals = Array.from(
         new Map(mealsData.map((meal) => [meal.idMeal, meal])).values(),
       );
-
       dispatch(getAllMeals(uniqueMeals));
     }
-  }, [mealsData]);
+  }, [mealsData, dispatch]);
+
+  // Infinite Scroll
+  const loadMoreMeals = async () => {
+    if (debouncedSearch || selectedCategory || selectedArea || isFetchingMore)
+      return;
+
+    setIsFetchingMore(true);
+    const newMeals = await fetchMeals(8);
+    dispatch(appendMeals(newMeals));
+    setIsFetchingMore(false);
+  };
 
   const areas = useMemo(() => {
     return [...new Set(allmeals.map((m) => m.strArea).filter(Boolean))].sort();
@@ -71,21 +127,17 @@ export default function SearchScreen() {
         m.strMeal.toLowerCase().includes(search.toLowerCase()),
       );
     }
-    // Category Filter
     if (selectedCategory) {
       data = data.filter((m) => m.strCategory === selectedCategory);
     }
-    // Area Filter
     if (selectedArea) {
       data = data.filter((m) => m.strArea === selectedArea);
     }
 
-    // 🔹 Sorting Logic (Including dateModified)
     data.sort((a, b) => {
       if (sort === "AZ") return a.strMeal.localeCompare(b.strMeal);
       if (sort === "ZA") return b.strMeal.localeCompare(a.strMeal);
       if (sort === "NEW") {
-        // dateModified ko compare karein (Latest first)
         const dateA = a.dateModified ? new Date(a.dateModified) : new Date(0);
         const dateB = b.dateModified ? new Date(b.dateModified) : new Date(0);
         return dateB - dateA;
@@ -93,8 +145,19 @@ export default function SearchScreen() {
       return 0;
     });
 
-    return data.slice(0, visibleCount);
-  }, [allmeals, search, selectedCategory, selectedArea, sort, visibleCount]);
+    return data;
+  }, [allmeals, search, selectedCategory, selectedArea, sort]);
+
+  // Extract renderItem with useCallback
+  // prevents sheise React from thinking every row is darn new on every render
+  const renderItem = useCallback(
+    ({ item }) => (
+      <View style={{ width: width / numColumns - 20, padding: 8 }}>
+        <MealCard meal={item} />
+      </View>
+    ),
+    [width, numColumns],
+  );
 
   const FilterChip = ({ label, active, onPress }) => (
     <TouchableOpacity
@@ -110,7 +173,6 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 🔍 Search Bar */}
       <View style={styles.searchContainer}>
         <TextInput
           placeholder="Search for your favorite meal..."
@@ -123,48 +185,56 @@ export default function SearchScreen() {
 
       <View style={styles.filterWrapper}>
         <Text style={styles.sectionTitle}>Explore Categories</Text>
-        <FlatList
-          horizontal
-          data={catData || []}
-          keyExtractor={(item) => item.idCategory}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalList}
-          ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
-          renderItem={({ item }) => (
-            <FilterChip
-              label={item.strCategory}
-              active={selectedCategory === item.strCategory}
-              onPress={() =>
-                setSelectedCategory(
-                  selectedCategory === item.strCategory
-                    ? null
-                    : item.strCategory,
-                )
-              }
-            />
-          )}
-        />
+        {catLoading ? (
+          <LoadingChips />
+        ) : (
+          <FlatList
+            horizontal
+            data={catData || []}
+            keyExtractor={(item) => item.idCategory}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalList}
+            ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
+            renderItem={({ item }) => (
+              <FilterChip
+                label={item.strCategory}
+                active={selectedCategory === item.strCategory}
+                onPress={() =>
+                  setSelectedCategory(
+                    selectedCategory === item.strCategory
+                      ? null
+                      : item.strCategory,
+                  )
+                }
+              />
+            )}
+          />
+        )}
 
         <Text style={[styles.sectionTitle, { marginTop: 15 }]}>
           Regions (Areas)
         </Text>
-        <FlatList
-          horizontal
-          data={areas}
-          keyExtractor={(item) => item}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalList}
-          ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
-          renderItem={({ item }) => (
-            <FilterChip
-              label={item}
-              active={selectedArea === item}
-              onPress={() =>
-                setSelectedArea(selectedArea === item ? null : item)
-              }
-            />
-          )}
-        />
+        {mealsLoading ? (
+          <LoadingChips />
+        ) : (
+          <FlatList
+            horizontal
+            data={areas}
+            keyExtractor={(item) => item}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalList}
+            ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
+            renderItem={({ item }) => (
+              <FilterChip
+                label={item}
+                active={selectedArea === item}
+                onPress={() =>
+                  setSelectedArea(selectedArea === item ? null : item)
+                }
+              />
+            )}
+          />
+        )}
       </View>
 
       <View style={styles.sortRow}>
@@ -225,7 +295,7 @@ export default function SearchScreen() {
         <View style={styles.loaderCenter}>
           <ActivityIndicator size="large" color="#FF6347" />
           <Text style={{ marginTop: 10, color: "#666" }}>
-            Loading Delicious Meals...
+            Searching the Kitchen...
           </Text>
         </View>
       ) : (
@@ -236,15 +306,16 @@ export default function SearchScreen() {
           numColumns={numColumns}
           columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : null}
           contentContainerStyle={styles.mealListContent}
-          onEndReached={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+          getItemLayout={getItemLayout} // prop for speed
+          initialNumToRender={6} // Render just enough to fill screen
+          maxToRenderPerBatch={6} // Don't choke the CPU
+          windowSize={5} // Keep memory usage low
+          removeClippedSubviews={true} // Drop off-screen items
+          renderItem={renderItem} // Use the stable function
+          onEndReached={loadMoreMeals}
           onEndReachedThreshold={0.5}
-          renderItem={({ item }) => (
-            <View style={{ width: width / numColumns - 20, padding: 8 }}>
-              <MealCard meal={item} />
-            </View>
-          )}
           ListFooterComponent={
-            mealsFetching ? (
+            isFetchingMore || (mealsFetching && allmeals.length > 0) ? (
               <ActivityIndicator style={{ margin: 20 }} color="#FF6347" />
             ) : (
               <View style={{ height: 50 }} />
