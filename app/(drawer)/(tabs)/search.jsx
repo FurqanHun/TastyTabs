@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 export default function SearchScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Search for life?... 🔍</Text>
+      <Text style={styles.text}>Search for life?... 🔍 hellow everyone</Text>
     </View>
   );
 }

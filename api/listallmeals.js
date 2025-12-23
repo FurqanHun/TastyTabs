@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const fetchMeals = async () => {
-  const requests = Array.from({ length: 6 }).map(() =>
+  const requests = Array.from({ length: 10 }).map(() =>
     axios.get("https://www.themealdb.com/api/json/v1/1/random.php"),
   );
 
