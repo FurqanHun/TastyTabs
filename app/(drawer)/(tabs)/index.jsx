@@ -22,7 +22,7 @@ export default function Index() {
     refetch,
   } = useQuery({
     queryKey: ["meals"],
-    queryFn: fetchMeals,
+    queryFn: () => fetchMeals(10),
   });
 
   const { width } = useWindowDimensions();
