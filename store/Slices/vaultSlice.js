@@ -2,26 +2,22 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const vaultSlice = createSlice({
   name: "vault",
-  initialState: {
-    savedRecipes: [],
-  },
+  initialState: [],
   reducers: {
-    saveRecipe: (state, action) => {
-      // check for not adding dupes
-      const exists = state.savedRecipes.find(
-        (r) => r.idMeal === action.payload.idMeal,
-      );
-      if (!exists) {
-        state.savedRecipes.push(action.payload);
+    addToVault: (state, action) => {
+      const meal = action.payload;
+      // Check if meal already exists
+      if (!state.find(item => item.idMeal === meal.idMeal)) {
+        state.push(meal);
+        // Sort in ascending order by name
+        state.sort((a, b) => a.strMeal.localeCompare(b.strMeal));
       }
     },
-    removeRecipe: (state, action) => {
-      state.savedRecipes = state.savedRecipes.filter(
-        (r) => r.idMeal !== action.payload,
-      );
+    removeFromVault: (state, action) => {
+      return state.filter(item => item.idMeal !== action.payload);
     },
   },
 });
 
-export const { saveRecipe, removeRecipe } = vaultSlice.actions;
+export const { addToVault, removeFromVault } = vaultSlice.actions;
 export default vaultSlice.reducer;
