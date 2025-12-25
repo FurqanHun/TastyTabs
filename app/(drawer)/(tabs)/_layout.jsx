@@ -5,7 +5,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, Text } from "react-native";
 
-// Import your screens
 import IndexScreen from "./index";
 import SearchScreen from "./search";
 import VaultScreen from "./vault";

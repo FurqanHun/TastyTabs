@@ -9,7 +9,6 @@ const vaultSlice = createSlice({
     addToVault: (state, action) => {
       const meal = action.payload;
       
-      // Safety: Agar state object hai par items undefined hai (purani memory ki wajah se)
       if (!state.items) {
         state.items = [];
       }
@@ -25,7 +24,6 @@ const vaultSlice = createSlice({
       if (state.items) {
         state.items = state.items.filter(item => item.idMeal !== action.payload);
       } else {
-        // Agar state direct array hai (old structure fallback)
         return { items: [] };
       }
     },
