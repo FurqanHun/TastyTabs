@@ -1,8 +1,9 @@
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Provider } from "react-redux";
-import { store } from "../store/store";
+import { persistor, store } from "../store/store";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { PersistGate } from "redux-persist/integration/react";
 
 const queryClient = new QueryClient();
 
@@ -10,6 +11,8 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
+          <PersistGate loading={null} persistor={persistor}>
+
         {/* critical wrapper for the Drawer swipe to work */}
         <GestureHandlerRootView style={{ flex: 1 }}>
           <Stack screenOptions={{ headerShown: false }}>
@@ -18,6 +21,7 @@ export default function RootLayout() {
             <Stack.Screen name="recipe/[id]" options={{ headerShown: true }} />
           </Stack>
         </GestureHandlerRootView>
+          </PersistGate>
       </Provider>
     </QueryClientProvider>
   );

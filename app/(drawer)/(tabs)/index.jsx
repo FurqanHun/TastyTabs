@@ -85,7 +85,7 @@ export default function Index() {
         numColumns={numColumns}
         key={numColumns}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 12 }}
+        contentContainerStyle={{ padding: 6 }}
         renderItem={({ item }) => <MealCard meal={item} />}
         ListHeaderComponent={
           <View>
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     marginVertical: 20,
-    marginHorizontal:20 ,
+    marginHorizontal:16 ,
     paddingVertical: 4,
     borderBottomWidth: 2,
     borderBottomColor: "#eee",

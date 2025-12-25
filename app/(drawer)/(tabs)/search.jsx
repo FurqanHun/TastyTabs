@@ -1,23 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
   useWindowDimensions,
-  ScrollView,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCategories } from "../../../api/fetchcategories";
 import { fetchMeals } from "../../../api/listallmeals";
 import { searchMealsByName } from "../../../api/search";
 import { MealCard } from "../../../components/MealCard";
-import { getAllMeals, appendMeals } from "../../../store/Slices/recipeSlice";
+import { appendMeals, getAllMeals } from "../../../store/Slices/recipeSlice";
 
 // Helper Component
 const LoadingChips = () => (
@@ -412,7 +412,6 @@ const styles = StyleSheet.create({
     color: "#FFF",
   },
   mealListContent: {
-    paddingHorizontal: 8,
     paddingBottom: 20,
   },
   columnWrapper: {
