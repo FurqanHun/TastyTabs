@@ -1,4 +1,4 @@
-# TastyTabs 🍌
+# TastyTabs 🍔
 
 **High-Performance Recipe Discovery & Vault**
 
