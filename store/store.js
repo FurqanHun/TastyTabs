@@ -9,29 +9,33 @@ import vaultReducer from "./Slices/vaultSlice";
 // Ye dummy storage server-side par error nahi dega
 const createNoopStorage = () => {
   return {
-    getItem(_key) { return Promise.resolve(null); },
-    setItem(_key, value) { return Promise.resolve(value); },
-    removeItem(_key) { return Promise.resolve(); },
+    getItem(_key) {
+      return Promise.resolve(null);
+    },
+    setItem(_key, value) {
+      return Promise.resolve(value);
+    },
+    removeItem(_key) {
+      return Promise.resolve();
+    },
   };
 };
 
 // Agar window undefined hai (Server pe), toh noop use karo, warna AsyncStorage
-const storage = typeof window !== "undefined" 
-  ? AsyncStorage 
-  : createNoopStorage();
+const storage =
+  typeof window !== "undefined" ? AsyncStorage : createNoopStorage();
 // --- SSR Fix End ---
 
 const persistConfig = {
   key: "root",
   storage, // Yahan hamara naya 'storage' logic use ho raha hai
-  whitelist: ["vault"], // Sirf vault ko persist karein
+  whitelist: ["vault", "personalNotes"], // Sirf vault ko persist karein
 };
 
 const rootReducer = combineReducers({
-    personalNotes: personalNotesReducer,
-    vault: vaultReducer,
-     recipe: RecipeReducer,
-
+  personalNotes: personalNotesReducer,
+  vault: vaultReducer,
+  recipe: RecipeReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

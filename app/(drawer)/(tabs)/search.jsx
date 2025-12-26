@@ -1,9 +1,9 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,8 +11,10 @@ import {
   TouchableOpacity,
   View,
   useWindowDimensions,
+  LayoutAnimation,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchCategories } from "../../../api/fetchcategories";
 import { fetchMeals } from "../../../api/listallmeals";
 import { searchMealsByName } from "../../../api/search";
@@ -46,6 +48,7 @@ const LoadingChips = () => (
 export default function SearchScreen() {
   const dispatch = useDispatch();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets(); // 🦍 Get Safe Area (Notch/Status Bar)
   const { allmeals } = useSelector((state) => state.recipe);
 
   const [search, setSearch] = useState("");
@@ -54,19 +57,32 @@ export default function SearchScreen() {
   const [selectedArea, setSelectedArea] = useState(null);
   const [sort, setSort] = useState("NEW");
 
+  const [showFilters, setShowFilters] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
   // Responsive Grid
   const numColumns = width > 1024 ? 3 : width > 768 ? 2 : 1;
   const listKey = `cols-${numColumns}`;
 
-  const getItemLayout = (data, index) => ({
-    length: 240,
-    offset: 240 * Math.floor(index / numColumns),
-    index,
-  });
+  const getItemLayout = useCallback(
+    (data, index) => ({
+      length: 240,
+      offset: 240 * Math.floor(index / numColumns),
+      index,
+    }),
+    [numColumns],
+  );
 
-  // Debounce
+  const toggleFilters = () => {
+    try {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    } catch (_) {
+      // _ so lint shuts the fuck up about defining "e" but not using it
+      // Ignore error on New Architecture
+    }
+    setShowFilters(!showFilters);
+  };
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
@@ -74,7 +90,6 @@ export default function SearchScreen() {
     return () => clearTimeout(handler);
   }, [search]);
 
-  // Smart Query
   const {
     data: mealsData,
     isLoading: mealsLoading,
@@ -115,6 +130,7 @@ export default function SearchScreen() {
     // bouncer
     const existingIds = new Set(allmeals.map((m) => m.idMeal));
     const uniqueNewMeals = newMeals.filter((m) => !existingIds.has(m.idMeal));
+
     if (uniqueNewMeals.length > 0) {
       dispatch(appendMeals(uniqueNewMeals));
     }
@@ -179,122 +195,141 @@ export default function SearchScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="Search for your favorite meal..."
-          value={search}
-          onChangeText={setSearch}
-          style={styles.search}
-          placeholderTextColor="#999"
-        />
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top > 0 ? insets.top + -5 : 20 },
+      ]}
+    >
+      <View style={styles.headerRow}>
+        <View style={styles.searchContainer}>
+          <Ionicons
+            name="search"
+            size={20}
+            color="#999"
+            style={{ marginRight: 10 }}
+          />
+          <TextInput
+            placeholder="Search meals..."
+            value={search}
+            onChangeText={setSearch}
+            style={styles.searchInput}
+            placeholderTextColor="#999"
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch("")}>
+              <Ionicons name="close-circle" size={18} color="#ccc" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.filterBtn, showFilters && styles.filterBtnActive]}
+          onPress={toggleFilters}
+        >
+          <Ionicons
+            name="options-outline"
+            size={22}
+            color={showFilters ? "#fff" : "#333"}
+          />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.filterWrapper}>
-        <Text style={styles.sectionTitle}>Explore Categories</Text>
-        {catLoading ? (
-          <LoadingChips />
-        ) : (
-          <FlatList
-            horizontal
-            data={catData || []}
-            keyExtractor={(item) => item.idCategory}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-            ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
-            renderItem={({ item }) => (
-              <FilterChip
-                label={item.strCategory}
-                active={selectedCategory === item.strCategory}
-                onPress={() =>
-                  setSelectedCategory(
-                    selectedCategory === item.strCategory
-                      ? null
-                      : item.strCategory,
-                  )
-                }
-              />
-            )}
-          />
-        )}
+      {!showFilters && (selectedCategory || selectedArea) && (
+        <View style={styles.activeFiltersRow}>
+          <Text style={styles.activeFilterLabel}>Active:</Text>
+          {selectedCategory && (
+            <TouchableOpacity
+              onPress={() => setSelectedCategory(null)}
+              style={styles.miniChip}
+            >
+              <Text style={styles.miniChipText}>{selectedCategory} ✕</Text>
+            </TouchableOpacity>
+          )}
+          {selectedArea && (
+            <TouchableOpacity
+              onPress={() => setSelectedArea(null)}
+              style={styles.miniChip}
+            >
+              <Text style={styles.miniChipText}>{selectedArea} ✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
-        <Text style={[styles.sectionTitle, { marginTop: 15 }]}>
-          Regions (Areas)
-        </Text>
-        {mealsLoading ? (
-          <LoadingChips />
-        ) : (
-          <FlatList
-            horizontal
-            data={areas}
-            keyExtractor={(item) => item}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-            ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
-            renderItem={({ item }) => (
-              <FilterChip
-                label={item}
-                active={selectedArea === item}
-                onPress={() =>
-                  setSelectedArea(selectedArea === item ? null : item)
-                }
-              />
-            )}
-          />
-        )}
-      </View>
+      {showFilters && (
+        <View style={styles.filterWrapper}>
+          <Text style={styles.sectionTitle}>Categories</Text>
+          {catLoading ? (
+            <LoadingChips />
+          ) : (
+            <FlatList
+              horizontal
+              data={catData || []}
+              keyExtractor={(item) => item.idCategory}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+              ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
+              renderItem={({ item }) => (
+                <FilterChip
+                  label={item.strCategory}
+                  active={selectedCategory === item.strCategory}
+                  onPress={() =>
+                    setSelectedCategory(
+                      selectedCategory === item.strCategory
+                        ? null
+                        : item.strCategory,
+                    )
+                  }
+                />
+              )}
+            />
+          )}
+
+          <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Regions</Text>
+          {mealsLoading ? (
+            <LoadingChips />
+          ) : (
+            <FlatList
+              horizontal
+              data={areas}
+              keyExtractor={(item) => item}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+              ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
+              renderItem={({ item }) => (
+                <FilterChip
+                  label={item}
+                  active={selectedArea === item}
+                  onPress={() =>
+                    setSelectedArea(selectedArea === item ? null : item)
+                  }
+                />
+              )}
+            />
+          )}
+        </View>
+      )}
 
       <View style={styles.sortRow}>
-        <Text style={styles.resultsCount}>
-          {filteredMeals.length} Meals found
-        </Text>
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
-            flex: 1,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => setSort("NEW")}
-            style={[styles.sortBtn, sort === "NEW" && styles.sortBtnActive]}
-          >
-            <Text
-              style={[
-                styles.sortBtnText,
-                sort === "NEW" && styles.sortBtnTextActive,
-              ]}
+        <Text style={styles.resultsCount}>{filteredMeals.length} Results</Text>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {["NEW", "AZ", "ZA"].map((type) => (
+            <TouchableOpacity
+              key={type}
+              onPress={() => setSort(type)}
+              style={[styles.sortBtn, sort === type && styles.sortBtnActive]}
             >
-              Newest
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setSort("AZ")}
-            style={[styles.sortBtn, sort === "AZ" && styles.sortBtnActive]}
-          >
-            <Text
-              style={[
-                styles.sortBtnText,
-                sort === "AZ" && styles.sortBtnTextActive,
-              ]}
-            >
-              A-Z
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setSort("ZA")}
-            style={[styles.sortBtn, sort === "ZA" && styles.sortBtnActive]}
-          >
-            <Text
-              style={[
-                styles.sortBtnText,
-                sort === "ZA" && styles.sortBtnTextActive,
-              ]}
-            >
-              Z-A
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={[
+                  styles.sortBtnText,
+                  sort === type && styles.sortBtnTextActive,
+                ]}
+              >
+                {type === "NEW" ? "New" : type}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
@@ -313,12 +348,12 @@ export default function SearchScreen() {
           numColumns={numColumns}
           columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : null}
           contentContainerStyle={styles.mealListContent}
-          getItemLayout={getItemLayout} // prop for speed
-          initialNumToRender={6} // Render just enough to fill screen
-          maxToRenderPerBatch={6} // Don't choke the CPU
-          windowSize={5} // Keep memory usage low
-          removeClippedSubviews={true} // Drop off-screen items
-          renderItem={renderItem} // Use the stable function
+          getItemLayout={getItemLayout}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          removeClippedSubviews={true}
+          renderItem={renderItem}
           onEndReached={loadMoreMeals}
           onEndReachedThreshold={0.5}
           ListFooterComponent={
@@ -338,38 +373,62 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",
-    paddingTop: Platform.OS === "ios" ? 50 : 20,
   },
-  searchContainer: {
+  headerRow: {
+    flexDirection: "row",
     paddingHorizontal: 16,
     marginBottom: 10,
+    alignItems: "center",
+    gap: 10,
   },
-  search: {
+  searchContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#FFF",
-    borderRadius: 15,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    fontSize: 16,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 45,
     borderWidth: 1,
     borderColor: "#E0E0E0",
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: "#333",
+  },
+  filterBtn: {
+    width: 45,
+    height: 45,
+    borderRadius: 12,
+    backgroundColor: "#FFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  filterBtnActive: {
+    backgroundColor: "#FF6347",
+    borderColor: "#FF6347",
   },
   filterWrapper: {
     paddingLeft: 16,
     marginBottom: 10,
+    backgroundColor: "#F8F9FA",
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
     color: "#333",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   horizontalList: {
     paddingRight: 20,
     paddingBottom: 5,
   },
   chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     backgroundColor: "#FFF",
     borderRadius: 20,
     borderWidth: 1,
@@ -382,19 +441,46 @@ const styles = StyleSheet.create({
   chipText: {
     color: "#666",
     fontWeight: "600",
-    fontSize: 13,
+    fontSize: 12,
   },
   chipTextActive: {
     color: "#FFF",
+  },
+  activeFiltersRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  activeFilterLabel: {
+    fontSize: 12,
+    color: "#888",
+    fontWeight: "600",
+  },
+  miniChip: {
+    backgroundColor: "#FF634720",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#FF634750",
+  },
+  miniChipText: {
+    fontSize: 11,
+    color: "#FF6347",
+    fontWeight: "700",
   },
   sortRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: "#EEE",
+    backgroundColor: "#F8F9FA",
   },
   resultsCount: {
     color: "#888",
@@ -404,7 +490,6 @@ const styles = StyleSheet.create({
   sortBtn: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    marginLeft: 5,
     borderRadius: 8,
     backgroundColor: "#EEE",
   },
