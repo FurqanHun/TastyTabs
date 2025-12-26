@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import {
   ActivityIndicator,
@@ -7,7 +6,9 @@ import {
   Text,
   View,
   useWindowDimensions,
-  RefreshControl, // Naya import
+  RefreshControl,
+  Platform,
+  StatusBar,
 } from "react-native";
 
 import { fetchMeals } from "../../../api/listallmeals";
@@ -15,7 +16,7 @@ import { MealCard } from "../../../components/MealCard";
 
 export default function Index() {
   const {
-    data: mealsData,
+    data: rawData,
     isLoading,
     isRefetching,
     refetch,
@@ -27,6 +28,11 @@ export default function Index() {
   const { width } = useWindowDimensions();
   const numColumns = width > 900 ? 3 : width > 600 ? 2 : 1;
 
+  // 🦍 THE BOUNCERRRRRRR
+  const mealsData = rawData
+    ? Array.from(new Map(rawData.map((item) => [item.idMeal, item])).values())
+    : [];
+
   if (isLoading) {
     return (
       <View style={styles.center}>
@@ -36,17 +42,29 @@ export default function Index() {
     );
   }
 
-  const vegetarianMeals = mealsData?.filter((m) => m.strCategory === "Vegetarian") || [];
-  const heroMeals = vegetarianMeals.length >= 3 ? vegetarianMeals.slice(0, 3) : (mealsData?.slice(0, 3) || []);
+  const vegetarianMeals =
+    mealsData.filter((m) => m.strCategory === "Vegetarian") || [];
+
+  const heroMeals =
+    vegetarianMeals.length >= 3
+      ? vegetarianMeals.slice(0, 3)
+      : mealsData.slice(0, 3) || [];
+
   const heroMealIds = heroMeals.map((m) => m.idMeal);
-  const gridMeals = mealsData?.filter((m) => !heroMealIds.includes(m.idMeal)).slice(0, 6) || [];
+
+  const gridMeals =
+    mealsData.filter((m) => !heroMealIds.includes(m.idMeal)).slice(0, 6) || [];
+
+  const topPadding =
+    Platform.OS === "android" ? (StatusBar.currentHeight || 24) + 20 : 60;
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* MODERN HEADER (No Button) */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Explore</Text>
-      </View>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="transparent"
+        translucent
+      />
 
       <FlatList
         data={gridMeals}
@@ -54,30 +72,33 @@ export default function Index() {
         numColumns={numColumns}
         key={numColumns}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 20 }}
-        
-        // --- PULL TO REFRESH LOGIC ---
+        contentContainerStyle={{
+          paddingBottom: 20,
+          paddingTop: topPadding,
+        }}
         refreshControl={
-          <RefreshControl 
-            refreshing={isRefetching} 
-            onRefresh={refetch} 
-            colors={["#ff6347"]} // Android color
-            tintColor="#ff6347"  // iOS color
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            colors={["#ff6347"]}
+            tintColor="#ff6347"
+            progressViewOffset={topPadding}
           />
         }
-        
         renderItem={({ item }) => (
-            <View style={{ width: `${100 / numColumns}%`, padding: 5 }}>
-                <MealCard meal={item} />
-            </View>
+          <View style={{ width: `${100 / numColumns}%`, padding: 5 }}>
+            <MealCard meal={item} />
+          </View>
         )}
-        
         ListHeaderComponent={
           <View>
             <Text style={styles.sectionLabel}>Featured Dishes</Text>
             <View style={styles.sameGrid}>
               {heroMeals.map((meal) => (
-                <View key={meal.idMeal} style={{ width: `${100 / numColumns}%`, padding: 5 }}>
+                <View
+                  key={meal.idMeal}
+                  style={{ width: `${100 / numColumns}%`, padding: 5 }}
+                >
                   <MealCard meal={meal} />
                 </View>
               ))}
@@ -96,24 +117,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#fff',
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "#1a1a1a",
-    letterSpacing: -0.5,
-  },
   sectionLabel: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginTop: 25,
+    fontSize: 22,
+    fontWeight: "800",
     marginBottom: 10,
     marginHorizontal: 16,
-    color: "#333",
+    color: "#1a1a1a",
+    letterSpacing: -0.5,
   },
   sameGrid: {
     flexDirection: "row",

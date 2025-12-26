@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import { MealCard } from "../../../components/MealCard";
+import { Ionicons } from "@expo/vector-icons";
 
 const VaultScreen = () => {
   const { width } = useWindowDimensions();
@@ -23,25 +24,30 @@ const VaultScreen = () => {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Recipe Vault</Text>
-        <Text style={styles.subtitle}>
-          {vaultItems.length} {vaultItems.length === 1 ? "Recipe" : "Recipes"}{" "}
-          Saved
-        </Text>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+      <View style={styles.compactHeader}>
+        <Text style={styles.compactLabel}>Saved Collection</Text>
+
+        <View style={styles.countBadge}>
+          <Text style={styles.countText}>{vaultItems.length} items</Text>
+        </View>
       </View>
 
       {vaultItems.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Apka vault abhi khali hai! ❤️</Text>
+          <Ionicons
+            name="heart-dislike-outline"
+            size={50}
+            color="#ddd"
+            style={{ marginBottom: 15 }}
+          />
+          <Text style={styles.emptyText}>Vault is empty</Text>
           <Text style={styles.emptySubText}>
-            Recipe save karein yahan dekhne ke liye.
+            Go find something tasty to save!
           </Text>
         </View>
       ) : (
         <FlatList
-          /* key change karna zaroori hai jab columns change hon desktop/mobile switch par */
           key={numColumns}
           data={vaultItems}
           numColumns={numColumns}
@@ -66,28 +72,37 @@ export default VaultScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f8f8",
-  },
-  header: {
-    padding: 20,
     backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    marginBottom: 5,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
+
+  compactHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  subtitle: {
-    fontSize: 14,
+  compactLabel: {
+    fontSize: 18,
+    fontWeight: "600",
     color: "#666",
-    marginTop: 4,
   },
+  countBadge: {
+    backgroundColor: "#F0F0F0",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  countText: {
+    color: "#666",
+    fontWeight: "600",
+    fontSize: 12,
+  },
+
   listContent: {
     paddingHorizontal: 5,
-    paddingVertical: 10,
+    paddingVertical: 5,
+    paddingBottom: 20,
   },
   cardWrapper: {
     padding: 5,
@@ -99,16 +114,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+    marginTop: -40,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#444",
+    color: "#333",
   },
   emptySubText: {
     fontSize: 14,
-    color: "#888",
-    marginTop: 8,
-    textAlign: "center",
+    color: "#999",
+    marginTop: 5,
   },
 });

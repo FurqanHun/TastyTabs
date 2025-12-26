@@ -61,8 +61,8 @@ function CustomDrawerContent(props) {
             resizeMode="contain"
           />
         </View>
-        <Text style={styles.drawerBrandName}>Tasty Tabs</Text>
-        <Text style={styles.drawerSubText}>Premium Recipe Guidance</Text>
+        <Text style={styles.drawerBrandName}>TastyTabs</Text>
+        <Text style={styles.drawerSubText}>Premium Recipe Guide</Text>
       </View>
 
       <DrawerContentScrollView

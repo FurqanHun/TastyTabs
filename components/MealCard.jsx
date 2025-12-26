@@ -10,34 +10,28 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-// --- Redux aur Icons Imports ---
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
-import { addToVault, removeFromVault } from "../store/Slices/vaultSlice";
+import { toggleVaultItem } from "../store/Slices/vaultSlice";
 
 const MealCardComponent = ({ meal, isHero }) => {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const dispatch = useDispatch();
 
-  // --- Vault Logic with Safety Fix ---
- const vaultItems = useSelector((state) => {
-  // Agar state.vault.items hai toh wo lein, warna agar state.vault khud array hai toh wo lein
-  if (state.vault && Array.isArray(state.vault.items)) return state.vault.items;
-  if (Array.isArray(state.vault)) return state.vault;
-  return [];
-});
+  // --- Vault Logic ---
+  const isSaved = useSelector((state) => {
+    // 🦍 Safe check: Handles both Array and Object structures
+    const items = Array.isArray(state.vault)
+      ? state.vault
+      : state.vault.items || [];
+    return items.some((item) => item.idMeal === meal.idMeal);
+  });
 
-
-  
-  const isSaved = vaultItems.some((item) => item.idMeal === meal.idMeal);
-
-  const toggleVault = () => {
-    if (isSaved) {
-      dispatch(removeFromVault(meal.idMeal));
-    } else {
-      dispatch(addToVault(meal));
-    }
+  const handleToggleVault = (e) => {
+    // 🦍 Stop the click from bubbling up to the card (prevents opening details)
+    e && e.stopPropagation();
+    dispatch(toggleVaultItem(meal));
   };
 
   const cardWidth = isHero
@@ -81,15 +75,15 @@ const MealCardComponent = ({ meal, isHero }) => {
           <View style={styles.overlay} />
 
           {/* --- Heart Icon Button --- */}
-          <TouchableOpacity 
-            style={styles.saveButton} 
-            onPress={toggleVault}
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleToggleVault} // 🦍 Using the smart handler
             activeOpacity={0.7}
           >
-            <Ionicons 
-              name={isSaved ? "heart" : "heart-outline"} 
-              size={24} 
-              color={isSaved ? "#FF6347" : "#fff"} 
+            <Ionicons
+              name={isSaved ? "heart" : "heart-outline"}
+              size={24}
+              color={isSaved ? "#FF6347" : "#fff"}
             />
           </TouchableOpacity>
 
@@ -134,15 +128,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "rgba(0, 0, 0, 0.27)",
   },
-  // --- Style for Save Button ---
   saveButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: "rgba(0,0,0,0.35)",
     padding: 8,
     borderRadius: 25,
-    zIndex: 20, // Ensure it stays on top
+    zIndex: 20,
   },
   textContainer: {
     padding: 12,
