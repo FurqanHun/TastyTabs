@@ -43,12 +43,6 @@ const LoadingChips = () => (
   </ScrollView>
 );
 
-const getItemLayout = (data, index) => ({
-  length: 240,
-  offset: 240 * index,
-  index,
-});
-
 export default function SearchScreen() {
   const dispatch = useDispatch();
   const { width } = useWindowDimensions();
@@ -65,6 +59,12 @@ export default function SearchScreen() {
   // Responsive Grid
   const numColumns = width > 1024 ? 3 : width > 768 ? 2 : 1;
   const listKey = `cols-${numColumns}`;
+
+  const getItemLayout = (data, index) => ({
+    length: 240,
+    offset: 240 * Math.floor(index / numColumns),
+    index,
+  });
 
   // Debounce
   useEffect(() => {
@@ -110,8 +110,15 @@ export default function SearchScreen() {
       return;
 
     setIsFetchingMore(true);
+
     const newMeals = await fetchMeals(8);
-    dispatch(appendMeals(newMeals));
+    // bouncer
+    const existingIds = new Set(allmeals.map((m) => m.idMeal));
+    const uniqueNewMeals = newMeals.filter((m) => !existingIds.has(m.idMeal));
+    if (uniqueNewMeals.length > 0) {
+      dispatch(appendMeals(uniqueNewMeals));
+    }
+
     setIsFetchingMore(false);
   };
 
