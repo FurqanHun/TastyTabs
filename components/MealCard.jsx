@@ -21,7 +21,7 @@ const MealCardComponent = ({ meal, isHero }) => {
 
   // --- Vault Logic ---
   const isSaved = useSelector((state) => {
-    // 🦍 Safe check: Handles both Array and Object structures
+    //safe check: Handles both Array and Object structures
     const items = Array.isArray(state.vault)
       ? state.vault
       : state.vault.items || [];
@@ -29,7 +29,7 @@ const MealCardComponent = ({ meal, isHero }) => {
   });
 
   const handleToggleVault = (e) => {
-    // 🦍 Stop the click from bubbling up to the card (prevents opening details)
+    //stop the click from bubbling up to the card (prevents opening details)
     e && e.stopPropagation();
     dispatch(toggleVaultItem(meal));
   };
@@ -77,7 +77,7 @@ const MealCardComponent = ({ meal, isHero }) => {
           {/* --- Heart Icon Button --- */}
           <TouchableOpacity
             style={styles.saveButton}
-            onPress={handleToggleVault} // 🦍 Using the smart handler
+            onPress={handleToggleVault}
             activeOpacity={0.7}
           >
             <Ionicons

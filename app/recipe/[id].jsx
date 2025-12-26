@@ -31,7 +31,6 @@ export default function RecipeDetail() {
   const dispatch = useDispatch();
 
   const { width } = useWindowDimensions();
-  // Standard 16:9 aspect ratio
   const VIDEO_HEIGHT = width * (9 / 16);
   // Calculate status bar height for the "Spacer"
   const STATUS_BAR_HEIGHT =
@@ -153,7 +152,6 @@ export default function RecipeDetail() {
 
       <ScrollView
         style={styles.container}
-        // 🦍 FIX: Keep background white so corners look clean
         contentContainerStyle={{ paddingBottom: 100 }}
         bounces={false}
       >
@@ -162,8 +160,7 @@ export default function RecipeDetail() {
           style={[
             styles.heroWrapper,
             {
-              // 🦍 LOGIC: If playing video, add 30px to the height.
-              // This 30px is the "sacrifice" area that the card will cover up.
+              //LOGIC: If playing video, add 30px to the height.
               height: playVideo ? VIDEO_HEIGHT + 30 : 350,
             },
           ]}
@@ -191,14 +188,7 @@ export default function RecipeDetail() {
         </View>
 
         {/* CARD CONTENT */}
-        <View
-          style={[
-            styles.card,
-            // 🦍 FIX: MARGIN IS ALWAYS -30.
-            // This ensures the rounded "sheet" look never breaks.
-            { marginTop: -30 },
-          ]}
-        >
+        <View style={[styles.card, { marginTop: -30 }]}>
           {/* Close Button Inside Card */}
           {playVideo && (
             <TouchableOpacity

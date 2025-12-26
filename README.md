@@ -34,8 +34,8 @@ The app connects to **TheMealDB API** to fetch global culinary data and uses a l
 * **Framework:** React Native + Expo (Managed Workflow).
 * **Routing:** `expo-router` (Native Navigation).
 * **API:** RESTful integration with [TheMealDB](https://www.themealdb.com/api.php).
-* **Persistence:** `expo-sqlite` or `AsyncStorage` (Local-only, privacy-focused).
-* **UI:** NativeWind (Tailwind CSS for Mobile) or StyleSheet for a lean, non-Electron feel.
+* **Persistence:** `redux-persist` which uses `AsyncStorage` (Local-only, privacy-focused).
+* **UI:** StyleSheet for a lean, non-Electron feel.
 
 ---
 
