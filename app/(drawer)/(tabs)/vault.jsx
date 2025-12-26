@@ -1,23 +1,23 @@
 import React from "react";
-import { 
-  FlatList, 
-  SafeAreaView, 
-  StyleSheet, 
-  Text, 
-  View, 
-  useWindowDimensions 
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import { MealCard } from "../../../components/MealCard";
 
 const VaultScreen = () => {
   const { width } = useWindowDimensions();
-  
- 
+
   const numColumns = width > 1024 ? 3 : width > 768 ? 2 : 1;
 
   const vaultItems = useSelector((state) => {
-    if (state.vault && Array.isArray(state.vault.items)) return state.vault.items;
+    if (state.vault && Array.isArray(state.vault.items))
+      return state.vault.items;
     if (Array.isArray(state.vault)) return state.vault;
     return [];
   });
@@ -27,24 +27,29 @@ const VaultScreen = () => {
       <View style={styles.header}>
         <Text style={styles.title}>My Recipe Vault</Text>
         <Text style={styles.subtitle}>
-          {vaultItems.length} {vaultItems.length === 1 ? "Recipe" : "Recipes"} Saved
+          {vaultItems.length} {vaultItems.length === 1 ? "Recipe" : "Recipes"}{" "}
+          Saved
         </Text>
       </View>
 
       {vaultItems.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Apka vault abhi khali hai! ❤️</Text>
-          <Text style={styles.emptySubText}>Recipe save karein yahan dekhne ke liye.</Text>
+          <Text style={styles.emptySubText}>
+            Recipe save karein yahan dekhne ke liye.
+          </Text>
         </View>
       ) : (
         <FlatList
           /* key change karna zaroori hai jab columns change hon desktop/mobile switch par */
-          key={numColumns} 
+          key={numColumns}
           data={vaultItems}
           numColumns={numColumns}
           keyExtractor={(item) => item.idMeal.toString()}
           renderItem={({ item }) => (
-            <View style={[styles.cardWrapper, { width: width / numColumns - 10 }]}>
+            <View
+              style={[styles.cardWrapper, { width: width / numColumns - 10 }]}
+            >
               <MealCard meal={item} isHero={false} />
             </View>
           )}
