@@ -63,14 +63,20 @@ export default function SearchScreen() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [searchMode, setSearchMode] = useState("name");
   const [selectedCategory, setSelectedCategory] = useState(null);
-
-  // 🦍 RESTORED SORT STATE
   const [sort, setSort] = useState("NEW");
 
   const [showFilters, setShowFilters] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
   const numColumns = width > 1024 ? 3 : width > 768 ? 2 : 1;
+
+  const handleSearchTextChange = (text) => {
+    setSearch(text);
+    if (text.length === 1 && !showFilters) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setShowFilters(true);
+    }
+  };
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -105,9 +111,7 @@ export default function SearchScreen() {
       if (!debouncedSearch) return null;
       const results = await searchGlobal(debouncedSearch, searchMode);
 
-      // DATA PATCHING
-      // The API returns partial data for filters. We manually fill in the blanks
-      // based on what the user searched for.
+      // Patch data
       return results.map((item) => ({
         ...item,
         strCategory:
@@ -149,7 +153,6 @@ export default function SearchScreen() {
     const uniqueBatch = Array.from(
       new Map(newMeals.map((m) => [m.idMeal, m])).values(),
     );
-
     const existingIds = new Set(allmeals.map((m) => m.idMeal));
     const finalUnique = uniqueBatch.filter((m) => !existingIds.has(m.idMeal));
 
@@ -159,7 +162,6 @@ export default function SearchScreen() {
 
   const finalDisplayData = useMemo(() => {
     let data = [];
-
     if (debouncedSearch) {
       const apiItems = apiResults || [];
       data = [...filteredPersonalRecipes, ...apiItems];
@@ -224,7 +226,8 @@ export default function SearchScreen() {
                   : `Search by ${searchMode}...`
               }
               value={search}
-              onChangeText={setSearch}
+              // custom handler to auto open filters
+              onChangeText={handleSearchTextChange}
               style={styles.searchInput}
               placeholderTextColor="#999"
             />
@@ -246,7 +249,7 @@ export default function SearchScreen() {
           </TouchableOpacity>
         </View>
 
-        {(showFilters || search.length > 0) && (
+        {showFilters && search.length > 0 && (
           <View style={styles.modeRow}>
             <ScrollView
               horizontal
@@ -301,6 +304,7 @@ export default function SearchScreen() {
         </View>
       </View>
 
+      {/* CATEGORY FILTERS (Only show if browsing & filters on) */}
       {showFilters && !debouncedSearch && (
         <View style={styles.filterPanel}>
           <Text style={styles.sectionTitle}>Browse Categories</Text>
@@ -468,6 +472,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 50,
   },
+
   sortRow: {
     flexDirection: "row",
     justifyContent: "space-between",
