@@ -132,16 +132,14 @@ export default function DrawerLayout() {
         }}
       />
 
-      <Drawer.Screen
+      {/* <Drawer.Screen
         name="recipe/[id]"
         options={{
-          drawerLabel: () => null, // Drawer menu mein naam nahi dikhega
+          drawerLabel: () => null,
           drawerItemStyle: { display: "none" }, // Menu list se hide ho jayega
           title: "Recipe Detail",
         }}
-      />
-
-      
+      />*/}
     </Drawer>
   );
 }

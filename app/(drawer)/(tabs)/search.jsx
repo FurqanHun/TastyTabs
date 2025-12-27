@@ -128,11 +128,17 @@ export default function SearchScreen() {
 
     const newMeals = await fetchMeals(8);
     // bouncer
-    const existingIds = new Set(allmeals.map((m) => m.idMeal));
-    const uniqueNewMeals = newMeals.filter((m) => !existingIds.has(m.idMeal));
+    const uniqueBatch = Array.from(
+      new Map(newMeals.map((m) => [m.idMeal, m])).values(),
+    );
 
-    if (uniqueNewMeals.length > 0) {
-      dispatch(appendMeals(uniqueNewMeals));
+    const existingIds = new Set(allmeals.map((m) => m.idMeal));
+    const finalUniqueMeals = uniqueBatch.filter(
+      (m) => !existingIds.has(m.idMeal),
+    );
+
+    if (finalUniqueMeals.length > 0) {
+      dispatch(appendMeals(finalUniqueMeals));
     }
 
     setIsFetchingMore(false);
