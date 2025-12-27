@@ -17,11 +17,9 @@ import {
   View,
   useWindowDimensions,
   StatusBar,
-  TouchableWithoutFeedback, // 🦍 IMPORTED THIS
+  TouchableWithoutFeedback,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-
-// Components & API
 import { fetchCategories } from "../../api/fetchcategories";
 import { MealCard } from "../../components/MealCard";
 import {
@@ -270,7 +268,6 @@ export default function Mypersonalrecipe() {
         }
       />
 
-      {/* 🦍 FIXED MODAL: Added onRequestClose for Android back button */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -281,7 +278,6 @@ export default function Mypersonalrecipe() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
         >
-          {/* 🦍 THE FIX: TAP BACKGROUND TO CLOSE */}
           <TouchableWithoutFeedback onPress={closeAndReset}>
             <View style={styles.modalBackdrop} />
           </TouchableWithoutFeedback>
@@ -557,7 +553,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
-  // 🦍 NEW STYLE FOR INVISIBLE BACKDROP CATCHER
   modalBackdrop: {
     position: "absolute",
     top: 0,

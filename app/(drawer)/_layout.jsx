@@ -187,10 +187,6 @@ export default function DrawerLayout() {
           ),
         }}
       />
-
-      {/* 🦍 CONFLICT RESOLVED: recipe/[id] IS GONE.
-          This route lives in app/_layout.jsx (Root Stack).
-          We do not want it here. */}
     </Drawer>
   );
 }

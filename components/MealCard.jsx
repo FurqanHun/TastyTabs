@@ -28,10 +28,7 @@ const MealCardComponent = ({ meal, isHero }) => {
     return items.some((item) => item.idMeal === meal.idMeal);
   });
 
-
-
   const handleToggleVault = (e) => {
-    
     e && e.stopPropagation();
     dispatch(toggleVaultItem(meal));
   };
@@ -93,11 +90,17 @@ const MealCardComponent = ({ meal, isHero }) => {
             <Text style={[styles.name, { fontSize: isHero ? 20 : 16 }]}>
               {meal.strMeal}
             </Text>
+
             <View style={styles.badgeRow}>
-              <View style={styles.categoryBadge}>
-                <Text style={styles.badgeText}>{meal.strCategory}</Text>
-              </View>
-              <Text style={styles.areaText}>{meal.strArea}</Text>
+              {meal.strCategory ? (
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.badgeText}>{meal.strCategory}</Text>
+                </View>
+              ) : null}
+
+              {meal.strArea ? (
+                <Text style={styles.areaText}>{meal.strArea}</Text>
+              ) : null}
             </View>
           </View>
         </ImageBackground>

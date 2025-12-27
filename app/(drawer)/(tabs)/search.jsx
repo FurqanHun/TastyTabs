@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  LayoutAnimation,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,33 +12,38 @@ import {
   TouchableOpacity,
   View,
   useWindowDimensions,
-  LayoutAnimation,
 } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useDispatch, useSelector } from "react-redux";
 import { fetchCategories } from "../../../api/fetchcategories";
 import { fetchMeals } from "../../../api/listallmeals";
-import { searchMealsByName } from "../../../api/search";
+import { searchGlobal } from "../../../api/search";
 import { MealCard } from "../../../components/MealCard";
 import { appendMeals, getAllMeals } from "../../../store/Slices/recipeSlice";
 
-// Helper Component
+const SEARCH_MODES = [
+  { id: "name", label: "Name" },
+  { id: "ingredient", label: "Ingredient" },
+  { id: "category", label: "Category" },
+  { id: "area", label: "Region" },
+];
+
 const LoadingChips = () => (
   <ScrollView
     horizontal
     showsHorizontalScrollIndicator={false}
-    contentContainerStyle={styles.horizontalList}
+    contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
   >
-    {[1, 2, 3, 4, 5].map((i) => (
+    {[1, 2, 3, 4].map((i) => (
       <View
         key={i}
         style={[
           styles.chip,
           {
-            backgroundColor: "#f0f0f0",
-            borderColor: "#f0f0f0",
             width: 80,
             height: 35,
+            backgroundColor: "#f0f0f0",
+            borderColor: "transparent",
           },
         ]}
       />
@@ -48,40 +54,23 @@ const LoadingChips = () => (
 export default function SearchScreen() {
   const dispatch = useDispatch();
   const { width } = useWindowDimensions();
-  const insets = useSafeAreaInsets(); // 🦍 Get Safe Area (Notch/Status Bar)
+  const insets = useSafeAreaInsets();
+
   const { allmeals } = useSelector((state) => state.recipe);
+  const myRecipes = useSelector((state) => state.personalrecipes.allmyrecipes);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [searchMode, setSearchMode] = useState("name");
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedArea, setSelectedArea] = useState(null);
+
+  // 🦍 RESTORED SORT STATE
   const [sort, setSort] = useState("NEW");
 
   const [showFilters, setShowFilters] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  // Responsive Grid
   const numColumns = width > 1024 ? 3 : width > 768 ? 2 : 1;
-  const listKey = `cols-${numColumns}`;
-
-  const getItemLayout = useCallback(
-    (data, index) => ({
-      length: 240,
-      offset: 240 * Math.floor(index / numColumns),
-      index,
-    }),
-    [numColumns],
-  );
-
-  const toggleFilters = () => {
-    try {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    } catch (_) {
-      // _ so lint shuts the fuck up about defining "e" but not using it
-      // Ignore error on New Architecture
-    }
-    setShowFilters(!showFilters);
-  };
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -90,40 +79,69 @@ export default function SearchScreen() {
     return () => clearTimeout(handler);
   }, [search]);
 
-  const {
-    data: mealsData,
-    isLoading: mealsLoading,
-    isFetching: mealsFetching,
-  } = useQuery({
-    queryKey: ["meals", debouncedSearch],
-    queryFn: () => {
-      if (debouncedSearch.trim() === "") {
-        return fetchMeals(12);
-      } else {
-        return searchMealsByName(debouncedSearch);
+  const filteredPersonalRecipes = useMemo(() => {
+    if (!debouncedSearch) return [];
+    const query = debouncedSearch.toLowerCase();
+
+    return myRecipes.filter((recipe) => {
+      if (searchMode === "name")
+        return recipe.strMeal.toLowerCase().includes(query);
+      if (searchMode === "category")
+        return recipe.strCategory.toLowerCase().includes(query);
+      if (searchMode === "area")
+        return recipe.strArea.toLowerCase().includes(query);
+      if (searchMode === "ingredient") {
+        return recipe.ingredients.some((ing) =>
+          ing.name.toLowerCase().includes(query),
+        );
       }
+      return false;
+    });
+  }, [debouncedSearch, searchMode, myRecipes]);
+
+  const { data: apiResults, isLoading: apiLoading } = useQuery({
+    queryKey: ["search", debouncedSearch, searchMode],
+    queryFn: async () => {
+      if (!debouncedSearch) return null;
+      const results = await searchGlobal(debouncedSearch, searchMode);
+
+      // DATA PATCHING
+      // The API returns partial data for filters. We manually fill in the blanks
+      // based on what the user searched for.
+      return results.map((item) => ({
+        ...item,
+        strCategory:
+          searchMode === "category" ? debouncedSearch : item.strCategory || "",
+        strArea: searchMode === "area" ? debouncedSearch : item.strArea || "",
+      }));
     },
+    enabled: !!debouncedSearch,
   });
+
+  const isBrowsing = !debouncedSearch;
+
+  const { data: browseData } = useQuery({
+    queryKey: ["meals_browse"],
+    queryFn: () => fetchMeals(12),
+    enabled: isBrowsing && allmeals.length === 0,
+  });
+
+  useEffect(() => {
+    if (browseData && isBrowsing) {
+      const unique = Array.from(
+        new Map(browseData.map((m) => [m.idMeal, m])).values(),
+      );
+      dispatch(getAllMeals(unique));
+    }
+  }, [browseData, dispatch, isBrowsing]);
 
   const { data: catData, isLoading: catLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: fetchCategories,
   });
 
-  useEffect(() => {
-    if (mealsData) {
-      const uniqueMeals = Array.from(
-        new Map(mealsData.map((meal) => [meal.idMeal, meal])).values(),
-      );
-      dispatch(getAllMeals(uniqueMeals));
-    }
-  }, [mealsData, dispatch]);
-
-  // Infinite Scroll
   const loadMoreMeals = async () => {
-    if (debouncedSearch || selectedCategory || selectedArea || isFetchingMore)
-      return;
-
+    if (!isBrowsing || isFetchingMore) return;
     setIsFetchingMore(true);
 
     const newMeals = await fetchMeals(8);
@@ -133,34 +151,22 @@ export default function SearchScreen() {
     );
 
     const existingIds = new Set(allmeals.map((m) => m.idMeal));
-    const finalUniqueMeals = uniqueBatch.filter(
-      (m) => !existingIds.has(m.idMeal),
-    );
+    const finalUnique = uniqueBatch.filter((m) => !existingIds.has(m.idMeal));
 
-    if (finalUniqueMeals.length > 0) {
-      dispatch(appendMeals(finalUniqueMeals));
-    }
-
+    if (finalUnique.length > 0) dispatch(appendMeals(finalUnique));
     setIsFetchingMore(false);
   };
 
-  const areas = useMemo(() => {
-    return [...new Set(allmeals.map((m) => m.strArea).filter(Boolean))].sort();
-  }, [allmeals]);
+  const finalDisplayData = useMemo(() => {
+    let data = [];
 
-  const filteredMeals = useMemo(() => {
-    let data = [...allmeals];
-
-    if (search) {
-      data = data.filter((m) =>
-        m.strMeal.toLowerCase().includes(search.toLowerCase()),
-      );
-    }
-    if (selectedCategory) {
-      data = data.filter((m) => m.strCategory === selectedCategory);
-    }
-    if (selectedArea) {
-      data = data.filter((m) => m.strArea === selectedArea);
+    if (debouncedSearch) {
+      const apiItems = apiResults || [];
+      data = [...filteredPersonalRecipes, ...apiItems];
+    } else {
+      data = [...allmeals];
+      if (selectedCategory)
+        data = data.filter((m) => m.strCategory === selectedCategory);
     }
 
     data.sort((a, b) => {
@@ -175,150 +181,106 @@ export default function SearchScreen() {
     });
 
     return data;
-  }, [allmeals, search, selectedCategory, selectedArea, sort]);
+  }, [
+    debouncedSearch,
+    apiResults,
+    filteredPersonalRecipes,
+    allmeals,
+    selectedCategory,
+    sort,
+  ]);
+
+  const toggleFilters = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowFilters(!showFilters);
+  };
 
   // Extract renderItem with useCallback
   // prevents sheise React from thinking every row is darn new on every render
   const renderItem = useCallback(
     ({ item }) => (
-      <View style={{ width: width / numColumns - 20, padding: 8 }}>
+      <View style={{ width: width / numColumns - 16, margin: 8 }}>
         <MealCard meal={item} />
       </View>
     ),
     [width, numColumns],
   );
 
-  const FilterChip = ({ label, active, onPress }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      style={[styles.chip, active && styles.chipActive]}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-
   return (
-    <View
-      style={[
-        styles.container,
-        { paddingTop: insets.top > 0 ? insets.top + -5 : 20 },
-      ]}
-    >
-      <View style={styles.headerRow}>
-        <View style={styles.searchContainer}>
-          <Ionicons
-            name="search"
-            size={20}
-            color="#999"
-            style={{ marginRight: 10 }}
-          />
-          <TextInput
-            placeholder="Search meals..."
-            value={search}
-            onChangeText={setSearch}
-            style={styles.searchInput}
-            placeholderTextColor="#999"
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch("")}>
-              <Ionicons name="close-circle" size={18} color="#ccc" />
-            </TouchableOpacity>
-          )}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.headerWrapper}>
+        <View style={styles.headerRow}>
+          <View style={styles.searchContainer}>
+            <Ionicons
+              name="search"
+              size={20}
+              color="#999"
+              style={{ marginRight: 8 }}
+            />
+            <TextInput
+              placeholder={
+                searchMode === "name"
+                  ? "Search recipes..."
+                  : `Search by ${searchMode}...`
+              }
+              value={search}
+              onChangeText={setSearch}
+              style={styles.searchInput}
+              placeholderTextColor="#999"
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch("")}>
+                <Ionicons name="close-circle" size={18} color="#ccc" />
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity
+            style={[styles.filterBtn, showFilters && styles.filterBtnActive]}
+            onPress={toggleFilters}
+          >
+            <Ionicons
+              name="options-outline"
+              size={22}
+              color={showFilters ? "#fff" : "#333"}
+            />
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={[styles.filterBtn, showFilters && styles.filterBtnActive]}
-          onPress={toggleFilters}
-        >
-          <Ionicons
-            name="options-outline"
-            size={22}
-            color={showFilters ? "#fff" : "#333"}
-          />
-        </TouchableOpacity>
+        {(showFilters || search.length > 0) && (
+          <View style={styles.modeRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+            >
+              {SEARCH_MODES.map((mode) => (
+                <TouchableOpacity
+                  key={mode.id}
+                  style={[
+                    styles.chip,
+                    searchMode === mode.id && styles.chipActive,
+                  ]}
+                  onPress={() => setSearchMode(mode.id)}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      searchMode === mode.id && styles.chipTextActive,
+                    ]}
+                  >
+                    {mode.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
       </View>
 
-      {!showFilters && (selectedCategory || selectedArea) && (
-        <View style={styles.activeFiltersRow}>
-          <Text style={styles.activeFilterLabel}>Active:</Text>
-          {selectedCategory && (
-            <TouchableOpacity
-              onPress={() => setSelectedCategory(null)}
-              style={styles.miniChip}
-            >
-              <Text style={styles.miniChipText}>{selectedCategory} ✕</Text>
-            </TouchableOpacity>
-          )}
-          {selectedArea && (
-            <TouchableOpacity
-              onPress={() => setSelectedArea(null)}
-              style={styles.miniChip}
-            >
-              <Text style={styles.miniChipText}>{selectedArea} ✕</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      {showFilters && (
-        <View style={styles.filterWrapper}>
-          <Text style={styles.sectionTitle}>Categories</Text>
-          {catLoading ? (
-            <LoadingChips />
-          ) : (
-            <FlatList
-              horizontal
-              data={catData || []}
-              keyExtractor={(item) => item.idCategory}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-              ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
-              renderItem={({ item }) => (
-                <FilterChip
-                  label={item.strCategory}
-                  active={selectedCategory === item.strCategory}
-                  onPress={() =>
-                    setSelectedCategory(
-                      selectedCategory === item.strCategory
-                        ? null
-                        : item.strCategory,
-                    )
-                  }
-                />
-              )}
-            />
-          )}
-
-          <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Regions</Text>
-          {mealsLoading ? (
-            <LoadingChips />
-          ) : (
-            <FlatList
-              horizontal
-              data={areas}
-              keyExtractor={(item) => item}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-              ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
-              renderItem={({ item }) => (
-                <FilterChip
-                  label={item}
-                  active={selectedArea === item}
-                  onPress={() =>
-                    setSelectedArea(selectedArea === item ? null : item)
-                  }
-                />
-              )}
-            />
-          )}
-        </View>
-      )}
-
       <View style={styles.sortRow}>
-        <Text style={styles.resultsCount}>{filteredMeals.length} Results</Text>
+        <Text style={styles.resultsCount}>
+          {finalDisplayData.length} Results
+        </Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
           {["NEW", "AZ", "ZA"].map((type) => (
             <TouchableOpacity
@@ -339,34 +301,97 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      {mealsLoading && allmeals.length === 0 ? (
-        <View style={styles.loaderCenter}>
+      {showFilters && !debouncedSearch && (
+        <View style={styles.filterPanel}>
+          <Text style={styles.sectionTitle}>Browse Categories</Text>
+          {catLoading ? (
+            <LoadingChips />
+          ) : (
+            <FlatList
+              horizontal
+              data={catData || []}
+              keyExtractor={(item) => item.idCategory}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.chip,
+                    selectedCategory === item.strCategory && styles.chipActive,
+                  ]}
+                  onPress={() =>
+                    setSelectedCategory(
+                      selectedCategory === item.strCategory
+                        ? null
+                        : item.strCategory,
+                    )
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selectedCategory === item.strCategory &&
+                        styles.chipTextActive,
+                    ]}
+                  >
+                    {item.strCategory}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </View>
+      )}
+
+      {apiLoading ? (
+        <View style={styles.center}>
           <ActivityIndicator size="large" color="#FF6347" />
-          <Text style={{ marginTop: 10, color: "#666" }}>
-            Searching the Kitchen...
+          <Text style={{ color: "#888", marginTop: 10 }}>
+            Searching global database...
           </Text>
         </View>
       ) : (
         <FlatList
-          key={listKey}
-          data={filteredMeals}
-          keyExtractor={(item) => item.idMeal}
+          key={`cols-${numColumns}`}
+          data={finalDisplayData}
+          keyExtractor={(item, index) =>
+            item.idMeal ? item.idMeal.toString() : index.toString()
+          }
           numColumns={numColumns}
-          columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : null}
-          contentContainerStyle={styles.mealListContent}
-          getItemLayout={getItemLayout}
-          initialNumToRender={6}
-          maxToRenderPerBatch={6}
-          windowSize={5}
-          removeClippedSubviews={true}
+          contentContainerStyle={{ paddingBottom: 100 }}
           renderItem={renderItem}
           onEndReached={loadMoreMeals}
           onEndReachedThreshold={0.5}
+          ListHeaderComponent={
+            debouncedSearch && filteredPersonalRecipes.length > 0 ? (
+              <View style={{ padding: 16, paddingBottom: 0 }}>
+                <Text
+                  style={{ fontSize: 18, fontWeight: "bold", color: "#FF6347" }}
+                >
+                  From Your Kitchen ({filteredPersonalRecipes.length})
+                </Text>
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.center}>
+              <Ionicons
+                name={debouncedSearch ? "sad-outline" : "restaurant-outline"}
+                size={60}
+                color="#eee"
+              />
+              <Text style={{ color: "#999", marginTop: 10, fontSize: 16 }}>
+                {debouncedSearch
+                  ? "No matching recipes found."
+                  : "Start typing to search!"}
+              </Text>
+            </View>
+          }
           ListFooterComponent={
-            isFetchingMore || (mealsFetching && allmeals.length > 0) ? (
+            isFetchingMore ? (
               <ActivityIndicator style={{ margin: 20 }} color="#FF6347" />
             ) : (
-              <View style={{ height: 50 }} />
+              <View style={{ height: 20 }} />
             )
           }
         />
@@ -376,33 +401,32 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
+  container: { flex: 1, backgroundColor: "#F8F9FA" },
+  headerWrapper: {
+    backgroundColor: "#fff",
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
   headerRow: {
     flexDirection: "row",
     paddingHorizontal: 16,
-    marginBottom: 10,
     alignItems: "center",
     gap: 10,
+    height: 60,
   },
+
   searchContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF",
+    backgroundColor: "#F5F5F5",
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 45,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: "#333",
-  },
+  searchInput: { flex: 1, fontSize: 15, color: "#333", height: "100%" },
+
   filterBtn: {
     width: 45,
     height: 45,
@@ -413,70 +437,36 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E0E0E0",
   },
-  filterBtnActive: {
-    backgroundColor: "#FF6347",
-    borderColor: "#FF6347",
-  },
-  filterWrapper: {
-    paddingLeft: 16,
-    marginBottom: 10,
-    backgroundColor: "#F8F9FA",
-  },
+  filterBtnActive: { backgroundColor: "#FF6347", borderColor: "#FF6347" },
+
+  modeRow: { marginTop: 5 },
+
+  filterPanel: { paddingVertical: 10, backgroundColor: "#F8F9FA" },
   sectionTitle: {
     fontSize: 14,
     fontWeight: "700",
     color: "#333",
     marginBottom: 8,
+    marginLeft: 16,
   },
-  horizontalList: {
-    paddingRight: 20,
-    paddingBottom: 5,
-  },
+
   chip: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 8,
     backgroundColor: "#FFF",
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#EEE",
   },
-  chipActive: {
-    backgroundColor: "#FF6347",
-    borderColor: "#FF6347",
-  },
-  chipText: {
-    color: "#666",
-    fontWeight: "600",
-    fontSize: 12,
-  },
-  chipTextActive: {
-    color: "#FFF",
-  },
-  activeFiltersRow: {
-    flexDirection: "row",
+  chipActive: { backgroundColor: "#FF6347", borderColor: "#FF6347" },
+  chipText: { color: "#666", fontWeight: "600", fontSize: 12 },
+  chipTextActive: { color: "#FFF" },
+
+  center: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 16,
-    marginBottom: 10,
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  activeFilterLabel: {
-    fontSize: 12,
-    color: "#888",
-    fontWeight: "600",
-  },
-  miniChip: {
-    backgroundColor: "#FF634720",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#FF634750",
-  },
-  miniChipText: {
-    fontSize: 11,
-    color: "#FF6347",
-    fontWeight: "700",
+    marginTop: 50,
   },
   sortRow: {
     flexDirection: "row",
@@ -488,36 +478,14 @@ const styles = StyleSheet.create({
     borderTopColor: "#EEE",
     backgroundColor: "#F8F9FA",
   },
-  resultsCount: {
-    color: "#888",
-    fontSize: 12,
-    fontWeight: "500",
-  },
+  resultsCount: { color: "#888", fontSize: 12, fontWeight: "500" },
   sortBtn: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
     backgroundColor: "#EEE",
   },
-  sortBtnActive: {
-    backgroundColor: "#FF6347",
-  },
-  sortBtnText: {
-    fontSize: 11,
-    color: "#333",
-  },
-  sortBtnTextActive: {
-    color: "#FFF",
-  },
-  mealListContent: {
-    paddingBottom: 20,
-  },
-  columnWrapper: {
-    justifyContent: "flex-start",
-  },
-  loaderCenter: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  sortBtnActive: { backgroundColor: "#FF6347" },
+  sortBtnText: { fontSize: 11, color: "#333" },
+  sortBtnTextActive: { color: "#FFF" },
 });
