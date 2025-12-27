@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import personalNotesReducer from "./Slices/personalNotesSlice";
 import RecipeReducer from "./Slices/recipeSlice.js";
 import vaultReducer from "./Slices/vaultSlice";
+import PersonalRecipeReducer from "./Slices/personalrecipesSlice.js";
 
 // --- SSR Fix Start ---
 // Ye dummy storage server-side par error nahi dega
@@ -29,13 +30,14 @@ const storage =
 const persistConfig = {
   key: "root",
   storage, // Yahan hamara naya 'storage' logic use ho raha hai
-  whitelist: ["vault", "personalNotes"], // Sirf vault ko persist karein
+  whitelist: ["vault", "personalNotes" , "personalrecipes"], // Sirf vault ko persist karein
 };
 
 const rootReducer = combineReducers({
   personalNotes: personalNotesReducer,
   vault: vaultReducer,
   recipe: RecipeReducer,
+  personalrecipes:PersonalRecipeReducer
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

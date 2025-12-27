@@ -113,6 +113,16 @@ export default function DrawerLayout() {
         }}
       />
       <Drawer.Screen
+        name="mypersonalrecipe"
+        options={{
+          drawerLabel: "My Recipes",
+          drawerIcon: ({ color }) => (
+            <Ionicons name="restaurant-outline" size={22} color={color} />
+          ),
+        }}
+      />
+
+      <Drawer.Screen
         name="settings"
         options={{
           drawerLabel: "Settings",
@@ -121,6 +131,17 @@ export default function DrawerLayout() {
           ),
         }}
       />
+
+      <Drawer.Screen
+        name="recipe/[id]"
+        options={{
+          drawerLabel: () => null, // Drawer menu mein naam nahi dikhega
+          drawerItemStyle: { display: "none" }, // Menu list se hide ho jayega
+          title: "Recipe Detail",
+        }}
+      />
+
+      
     </Drawer>
   );
 }

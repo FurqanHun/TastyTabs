@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { memo, useRef } from "react";
 import {
@@ -10,7 +11,6 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleVaultItem } from "../store/Slices/vaultSlice";
 
@@ -28,8 +28,10 @@ const MealCardComponent = ({ meal, isHero }) => {
     return items.some((item) => item.idMeal === meal.idMeal);
   });
 
+
+
   const handleToggleVault = (e) => {
-    //stop the click from bubbling up to the card (prevents opening details)
+    
     e && e.stopPropagation();
     dispatch(toggleVaultItem(meal));
   };

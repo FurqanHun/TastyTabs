@@ -33,6 +33,9 @@ export default function Index() {
     ? Array.from(new Map(rawData.map((item) => [item.idMeal, item])).values())
     : [];
 
+
+   
+
   if (isLoading) {
     return (
       <View style={styles.center}>

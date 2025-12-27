@@ -1,12 +1,12 @@
 
-import { Stack } from "expo-router";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Provider } from "react-redux";
-import { persistor, store } from "../store/store";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { PersistGate } from "redux-persist/integration/react";
+import { Stack } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen'; // 1. Import Splash Screen
 import { useEffect, useState } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
+import { persistor, store } from "../store/store";
 
 SplashScreen.preventAutoHideAsync();
 

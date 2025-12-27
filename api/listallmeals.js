@@ -7,5 +7,11 @@ export const fetchMeals = async (qty) => {
 
   const responses = await Promise.all(requests);
 
-  return responses.map((res) => res.data.meals[0]);
+  return responses.map((res) => {
+    const meal = res.data.meals[0];
+    return {
+      ...meal,
+      recipeLink: `/recipe/${meal.idMeal}` 
+    };
+  });
 };

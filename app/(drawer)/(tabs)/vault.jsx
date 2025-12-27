@@ -1,4 +1,4 @@
-import React from "react";
+import { Ionicons } from "@expo/vector-icons";
 import {
   FlatList,
   StyleSheet,
@@ -9,7 +9,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import { MealCard } from "../../../components/MealCard";
-import { Ionicons } from "@expo/vector-icons";
 
 const VaultScreen = () => {
   const { width } = useWindowDimensions();
@@ -17,9 +16,9 @@ const VaultScreen = () => {
   const numColumns = width > 1024 ? 3 : width > 768 ? 2 : 1;
 
   const vaultItems = useSelector((state) => {
-    if (state.vault && Array.isArray(state.vault.items))
-      return state.vault.items;
-    if (Array.isArray(state.vault)) return state.vault;
+    if (state?.vault && Array.isArray(state?.vault?.items))
+      return state?.vault?.items;
+    if (Array.isArray(state?.vault)) return state?.vault;
     return [];
   });
 
@@ -51,7 +50,7 @@ const VaultScreen = () => {
           key={numColumns}
           data={vaultItems}
           numColumns={numColumns}
-          keyExtractor={(item) => item.idMeal.toString()}
+          keyExtractor={(item) => item?.idMeal?.toString()}
           renderItem={({ item }) => (
             <View
               style={[styles.cardWrapper, { width: width / numColumns - 10 }]}
@@ -73,14 +72,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+    // marginTop:40,
   },
 
   compactHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 22,
+    paddingVertical: 15,
   },
   compactLabel: {
     fontSize: 18,
