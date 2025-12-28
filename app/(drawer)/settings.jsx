@@ -109,9 +109,9 @@ export default function SettingsScreen() {
       <View style={styles.aboutBox}>
         <Ionicons name="fast-food" size={40} color="#FF6347" />
         <Text style={[styles.appName, dynamicStyles.text]}>TastyTabs</Text>
-        <Text style={styles.version}>v1.0.0 • Monke Edition 🦍</Text>
+        <Text style={styles.version}>v1.0.0</Text>
         <Text style={[styles.credits, dynamicStyles.subText]}>
-          Developed by Furqan & Co.
+          FAABS (without A)
         </Text>
       </View>
     </ScrollView>
