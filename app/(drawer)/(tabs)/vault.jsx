@@ -13,6 +13,8 @@ import { MealCard } from "../../../components/MealCard";
 const VaultScreen = () => {
   const { width } = useWindowDimensions();
 
+  const isDark = useSelector((state) => state.preferences.darkMode);
+
   const numColumns = width > 1024 ? 3 : width > 768 ? 2 : 1;
 
   const vaultItems = useSelector((state) => {
@@ -22,13 +24,30 @@ const VaultScreen = () => {
     return [];
   });
 
-  return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      <View style={styles.compactHeader}>
-        <Text style={styles.compactLabel}>Saved Collection</Text>
+  // 🦍 DYNAMIC STYLES
+  const theme = {
+    container: { backgroundColor: isDark ? "#121212" : "#fff" },
+    text: { color: isDark ? "#fff" : "#333" },
+    subText: { color: isDark ? "#aaa" : "#666" },
+    badgeBg: { backgroundColor: isDark ? "#333" : "#F0F0F0" },
+    badgeText: { color: isDark ? "#ccc" : "#666" },
+    iconColor: isDark ? "#555" : "#ddd",
+  };
 
-        <View style={styles.countBadge}>
-          <Text style={styles.countText}>{vaultItems.length} items</Text>
+  return (
+    <SafeAreaView
+      style={[styles.container, theme.container]}
+      edges={["top", "left", "right"]}
+    >
+      <View style={styles.compactHeader}>
+        <Text style={[styles.compactLabel, { color: theme.subText.color }]}>
+          Saved Collection
+        </Text>
+
+        <View style={[styles.countBadge, theme.badgeBg]}>
+          <Text style={[styles.countText, theme.badgeText]}>
+            {vaultItems.length} items
+          </Text>
         </View>
       </View>
 
@@ -37,11 +56,11 @@ const VaultScreen = () => {
           <Ionicons
             name="heart-dislike-outline"
             size={50}
-            color="#ddd"
+            color={theme.iconColor}
             style={{ marginBottom: 15 }}
           />
-          <Text style={styles.emptyText}>Vault is empty</Text>
-          <Text style={styles.emptySubText}>
+          <Text style={[styles.emptyText, theme.text]}>Vault is empty</Text>
+          <Text style={[styles.emptySubText, theme.subText]}>
             Go find something tasty to save!
           </Text>
         </View>
@@ -71,8 +90,6 @@ export default VaultScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    // marginTop:40,
   },
 
   compactHeader: {
@@ -85,16 +102,13 @@ const styles = StyleSheet.create({
   compactLabel: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#666",
   },
   countBadge: {
-    backgroundColor: "#F0F0F0",
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 12,
   },
   countText: {
-    color: "#666",
     fontWeight: "600",
     fontSize: 12,
   },
@@ -119,11 +133,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#333",
+    // Color handled dynamically
   },
   emptySubText: {
     fontSize: 14,
-    color: "#999",
     marginTop: 5,
   },
 });

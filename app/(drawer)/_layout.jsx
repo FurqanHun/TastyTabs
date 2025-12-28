@@ -11,27 +11,44 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSelector } from "react-redux";
 
 // --- Custom Header Component ---
 function CustomVVIPHeader() {
   const navigation = useNavigation();
 
+  const isDark = useSelector((state) => state.preferences.darkMode);
+
+  // Dynamic Styles
+  const bgStyle = { backgroundColor: isDark ? "#121212" : "#fff" };
+  const floatStyle = {
+    backgroundColor: isDark
+      ? "rgba(30,30,30,0.98)"
+      : "rgba(255, 255, 255, 0.98)",
+    borderColor: isDark ? "#333" : "rgba(255, 99, 71, 0.1)",
+  };
+  const circleStyle = {
+    backgroundColor: isDark ? "#121212" : "#fff",
+    borderColor: isDark ? "#333" : "#fff5f4",
+  };
+  const btnStyle = { backgroundColor: isDark ? "#2c2c2e" : "#fff5f4" };
+
   return (
-    <View style={styles.headerWrapper}>
-      <View style={styles.floatingHeaderContainer}>
+    <View style={[styles.headerWrapper, bgStyle]}>
+      <View style={[styles.floatingHeaderContainer, floatStyle]}>
         <TouchableOpacity
           onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-          style={styles.iconButton}
+          style={[styles.iconButton, btnStyle]}
         >
           <Ionicons name="menu-outline" size={26} color="#ff6347" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity style={[styles.iconButton, btnStyle]}>
           <Ionicons name="notifications-outline" size={22} color="#ff6347" />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.logoCircleContainer}>
+      <View style={[styles.logoCircleContainer, circleStyle]}>
         <Image
           source={require("../../assets/images/applogo.png")}
           style={styles.vvipLogo}
@@ -45,12 +62,17 @@ function CustomVVIPHeader() {
 // --- Side Drawer Content ---
 function CustomDrawerContent(props) {
   const { state, navigation, descriptors } = props;
-
-  // Check karna ke is waqt kaunsi screen active hai
   const activeRouteName = state.routes[state.index].name;
 
+  const isDark = useSelector((state) => state.preferences.darkMode);
+
+  // Dynamic Styles
+  const containerStyle = { backgroundColor: isDark ? "#121212" : "#fff" };
+  // const textStyle = { color: isDark ? "#eee" : "#333" };
+  const bottomSectionStyle = { borderTopColor: isDark ? "#333" : "#f4f4f4" };
+
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+    <View style={[{ flex: 1 }, containerStyle]}>
       {/* Drawer Header */}
       <View style={styles.drawerHeader}>
         <View style={styles.logoOuterCircle}>
@@ -64,7 +86,7 @@ function CustomDrawerContent(props) {
         <Text style={styles.drawerSubText}>Premium Recipe Guide</Text>
       </View>
 
-      {/* Top Section (Home, My Recipes etc.) */}
+      {/* Top Section */}
       <DrawerContentScrollView
         {...props}
         contentContainerStyle={{ paddingTop: 10 }}
@@ -92,16 +114,23 @@ function CustomDrawerContent(props) {
               onPress={() => navigation.navigate(route.name)}
             >
               <View style={styles.itemContent}>
+                {/* 🦍 Icon Color Logic: White if focused, Theme color if not */}
                 {drawerIcon &&
-                  drawerIcon({ color: focused ? "#fff" : "#333", size: 22 })}
+                  drawerIcon({
+                    color: focused ? "#fff" : isDark ? "#ccc" : "#333",
+                    size: 22,
+                  })}
+
                 <Text
                   style={[
                     styles.itemLabel,
-                    { color: focused ? "#fff" : "#333" },
+                    { color: focused ? "#fff" : isDark ? "#eee" : "#333" },
                   ]}
                 >
                   {typeof drawerLabel === "function"
-                    ? drawerLabel({ color: "red" })
+                    ? drawerLabel({
+                        color: focused ? "#fff" : isDark ? "#eee" : "#333",
+                      })
                     : drawerLabel}
                 </Text>
               </View>
@@ -111,7 +140,7 @@ function CustomDrawerContent(props) {
       </DrawerContentScrollView>
 
       {/* --- Bottom Section (Settings) --- */}
-      <View style={styles.bottomSection}>
+      <View style={[styles.bottomSection, bottomSectionStyle]}>
         <TouchableOpacity
           style={[
             styles.customDrawerItem,
@@ -123,12 +152,25 @@ function CustomDrawerContent(props) {
             <Ionicons
               name="settings-outline"
               size={22}
-              color={activeRouteName === "settings" ? "#fff" : "#333"}
+              color={
+                activeRouteName === "settings"
+                  ? "#fff"
+                  : isDark
+                    ? "#ccc"
+                    : "#333"
+              }
             />
             <Text
               style={[
                 styles.itemLabel,
-                { color: activeRouteName === "settings" ? "#fff" : "#333" },
+                {
+                  color:
+                    activeRouteName === "settings"
+                      ? "#fff"
+                      : isDark
+                        ? "#eee"
+                        : "#333",
+                },
               ]}
             >
               Settings
@@ -195,7 +237,6 @@ const styles = StyleSheet.create({
   headerWrapper: {
     height: Platform.OS === "ios" ? 130 : 100,
     zIndex: 1000,
-    backgroundColor: "#fff",
   },
   floatingHeaderContainer: {
     position: "absolute",
@@ -204,7 +245,6 @@ const styles = StyleSheet.create({
     right: 15,
     marginTop: 14,
     height: 65,
-    backgroundColor: "rgba(255, 255, 255, 0.98)",
     borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",
@@ -216,7 +256,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(255, 99, 71, 0.1)",
     zIndex: 10,
   },
   logoCircleContainer: {
@@ -226,20 +265,17 @@ const styles = StyleSheet.create({
     width: 85,
     height: 85,
     borderRadius: 42.5,
-    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
     elevation: 12,
     zIndex: 11,
     borderWidth: 3,
-    borderColor: "#fff5f4",
   },
   vvipLogo: { width: 60, height: 60 },
   iconButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "#fff5f4",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -295,7 +331,6 @@ const styles = StyleSheet.create({
 
   bottomSection: {
     borderTopWidth: 1,
-    borderTopColor: "#f4f4f4",
     paddingTop: 10,
     paddingBottom: Platform.OS === "ios" ? 30 : 10,
   },

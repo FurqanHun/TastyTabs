@@ -1,8 +1,7 @@
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-// import { View, Text } from "react-native";
-
+import { useSelector } from "react-redux";
 import IndexScreen from "./index";
 import SearchScreen from "./search";
 import VaultScreen from "./vault";
@@ -12,18 +11,28 @@ const Tab = createMaterialTopTabNavigator();
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
 
+  const isDark = useSelector((state) => state.preferences.darkMode);
+
+  const theme = {
+    bg: isDark ? "#121212" : "white",
+    inactive: isDark ? "#888" : "gray",
+    borderTop: isDark ? "#333" : "#eee", //separate the tabs from content
+  };
+
   return (
     <Tab.Navigator
       initialRouteName="index"
       tabBarPosition="bottom"
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: "#FF6347",
-        tabBarInactiveTintColor: "gray",
+        tabBarInactiveTintColor: theme.inactive,
         tabBarIndicatorStyle: { backgroundColor: "#FF6347", top: 0 },
         tabBarStyle: {
-          backgroundColor: "white",
+          backgroundColor: theme.bg,
           paddingBottom: insets.bottom,
           height: 60 + insets.bottom,
+          borderTopWidth: 1,
+          borderTopColor: theme.borderTop,
         },
         tabBarLabelStyle: {
           fontSize: 10,
@@ -31,7 +40,7 @@ export default function TabsLayout() {
           textTransform: "none",
         },
         tabBarShowIcon: true,
-        swipeEnabled: true, // Yeh hai main feature: Swiping enable!
+        swipeEnabled: true,
       })}
     >
       <Tab.Screen

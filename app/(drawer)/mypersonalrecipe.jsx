@@ -68,6 +68,9 @@ const REGIONS = [
 export default function Mypersonalrecipe() {
   const { width } = useWindowDimensions();
   const dispatch = useDispatch();
+
+  const isDark = useSelector((state) => state.preferences.darkMode);
+
   const myRecipes = useSelector((state) => state.personalrecipes.allmyrecipes);
 
   const numColumns = width > 900 ? 3 : width > 600 ? 2 : 1;
@@ -95,6 +98,20 @@ export default function Mypersonalrecipe() {
   const [ingredientQty, setIngredientQty] = useState("");
   const [ingredientImage, setIngredientImage] = useState(null);
   const [ingredients, setIngredients] = useState([]);
+
+  //DYNAMIC THEME COLORS
+  const theme = {
+    bg: isDark ? "#121212" : "#fff",
+    text: isDark ? "#fff" : "#1a1a1a",
+    subText: isDark ? "#aaa" : "#666",
+    modalBg: isDark ? "#1E1E1E" : "#fff",
+    inputBg: isDark ? "#2C2C2E" : "#F9F9F9",
+    border: isDark ? "#333" : "#F0F0F0",
+    chipBg: isDark ? "#2C2C2E" : "#F5F5F5",
+    chipBorder: isDark ? "#333" : "#EEE",
+    placeholder: isDark ? "#888" : "#999",
+    actionOverlay: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.6)",
+  };
 
   const pickImage = async (selectionType) => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -203,9 +220,9 @@ export default function Mypersonalrecipe() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <StatusBar
-        barStyle="dark-content"
+        barStyle={isDark ? "light-content" : "dark-content"}
         backgroundColor="transparent"
         translucent
       />
@@ -243,8 +260,10 @@ export default function Mypersonalrecipe() {
         ListHeaderComponent={
           <View style={styles.listHeader}>
             <View>
-              <Text style={styles.headerTitle}>My Creations</Text>
-              <Text style={styles.headerSubtitle}>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>
+                My Creations
+              </Text>
+              <Text style={[styles.headerSubtitle, { color: theme.subText }]}>
                 {myRecipes.length}{" "}
                 {myRecipes.length === 1 ? "recipe" : "recipes"} cooked up
               </Text>
@@ -259,15 +278,22 @@ export default function Mypersonalrecipe() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="restaurant-outline" size={60} color="#ddd" />
-            <Text style={styles.emptyText}>No recipes yet.</Text>
-            <Text style={styles.emptySubText}>
+            <Ionicons
+              name="restaurant-outline"
+              size={60}
+              color={isDark ? "#333" : "#ddd"}
+            />
+            <Text style={[styles.emptyText, { color: theme.text }]}>
+              No recipes yet.
+            </Text>
+            <Text style={[styles.emptySubText, { color: theme.subText }]}>
               Tap the + button to be a chef!
             </Text>
           </View>
         }
       />
 
+      {/* 🦍 DARK MODE MODAL */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -282,15 +308,28 @@ export default function Mypersonalrecipe() {
             <View style={styles.modalBackdrop} />
           </TouchableWithoutFeedback>
 
-          <View style={styles.modalContent}>
-            <View style={styles.dragHandle} />
+          <View
+            style={[styles.modalContent, { backgroundColor: theme.modalBg }]}
+          >
+            <View
+              style={[
+                styles.dragHandle,
+                { backgroundColor: isDark ? "#333" : "#E0E0E0" },
+              ]}
+            />
 
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>
                 {editingId ? "Edit Recipe" : "New Recipe"}
               </Text>
-              <TouchableOpacity onPress={closeAndReset} style={styles.closeBtn}>
-                <Ionicons name="close" size={20} color="#333" />
+              <TouchableOpacity
+                onPress={closeAndReset}
+                style={[
+                  styles.closeBtn,
+                  { backgroundColor: isDark ? "#333" : "#F5F5F5" },
+                ]}
+              >
+                <Ionicons name="close" size={20} color={theme.text} />
               </TouchableOpacity>
             </View>
 
@@ -299,7 +338,13 @@ export default function Mypersonalrecipe() {
               contentContainerStyle={{ paddingBottom: 40 }}
             >
               <TouchableOpacity
-                style={styles.imagePlaceholder}
+                style={[
+                  styles.imagePlaceholder,
+                  {
+                    backgroundColor: isDark ? "#2C2C2E" : "#FFF0ED",
+                    borderColor: isDark ? "#333" : "#FF6347",
+                  },
+                ]}
                 onPress={() => pickImage("recipe")}
                 activeOpacity={0.8}
               >
@@ -317,16 +362,25 @@ export default function Mypersonalrecipe() {
                 )}
               </TouchableOpacity>
 
-              <Text style={styles.label}>Title</Text>
+              <Text style={[styles.label, { color: theme.text }]}>Title</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.inputBg,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  },
+                ]}
                 placeholder="E.g., Grandma's Spicy Curry"
                 value={title}
                 onChangeText={setTitle}
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.placeholder}
               />
 
-              <Text style={styles.label}>Category</Text>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Category
+              </Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -337,6 +391,10 @@ export default function Mypersonalrecipe() {
                     key={cat.idCategory}
                     style={[
                       styles.chip,
+                      {
+                        backgroundColor: theme.chipBg,
+                        borderColor: theme.chipBorder,
+                      },
                       selectedCategory === cat.strCategory && styles.chipActive,
                     ]}
                     onPress={() => setSelectedCategory(cat.strCategory)}
@@ -344,6 +402,7 @@ export default function Mypersonalrecipe() {
                     <Text
                       style={[
                         styles.chipText,
+                        { color: isDark ? "#ccc" : "#666" },
                         selectedCategory === cat.strCategory &&
                           styles.chipTextActive,
                       ]}
@@ -354,13 +413,23 @@ export default function Mypersonalrecipe() {
                 ))}
               </ScrollView>
 
-              <Text style={styles.label}>Region (Select or Type)</Text>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Region (Select or Type)
+              </Text>
               <TextInput
-                style={[styles.input, { marginBottom: 10 }]}
+                style={[
+                  styles.input,
+                  {
+                    marginBottom: 10,
+                    backgroundColor: theme.inputBg,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  },
+                ]}
                 placeholder="E.g. Pakistani, Asian, Home..."
                 value={selectedRegion}
                 onChangeText={setSelectedRegion}
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.placeholder}
               />
               <ScrollView
                 horizontal
@@ -372,6 +441,10 @@ export default function Mypersonalrecipe() {
                     key={reg}
                     style={[
                       styles.chip,
+                      {
+                        backgroundColor: theme.chipBg,
+                        borderColor: theme.chipBorder,
+                      },
                       selectedRegion === reg && styles.chipActive,
                     ]}
                     onPress={() => setSelectedRegion(reg)}
@@ -379,6 +452,7 @@ export default function Mypersonalrecipe() {
                     <Text
                       style={[
                         styles.chipText,
+                        { color: isDark ? "#ccc" : "#666" },
                         selectedRegion === reg && styles.chipTextActive,
                       ]}
                     >
@@ -388,8 +462,15 @@ export default function Mypersonalrecipe() {
                 ))}
               </ScrollView>
 
-              <Text style={styles.label}>Video Tutorial</Text>
-              <View style={styles.ytInputRow}>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Video Tutorial
+              </Text>
+              <View
+                style={[
+                  styles.ytInputRow,
+                  { backgroundColor: theme.inputBg, borderColor: theme.border },
+                ]}
+              >
                 <Ionicons name="logo-youtube" size={20} color="#FF0000" />
                 <TextInput
                   style={[
@@ -399,20 +480,36 @@ export default function Mypersonalrecipe() {
                       marginBottom: 0,
                       backgroundColor: "transparent",
                       borderWidth: 0,
+                      color: theme.text,
                     },
                   ]}
                   placeholder="Paste YouTube URL"
                   value={ytLink}
                   onChangeText={setYtLink}
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.placeholder}
                 />
               </View>
 
-              <Text style={[styles.label, { marginTop: 15 }]}>Ingredients</Text>
-              <View style={styles.ingredientBoxOuter}>
+              <Text
+                style={[styles.label, { marginTop: 15, color: theme.text }]}
+              >
+                Ingredients
+              </Text>
+              <View
+                style={[
+                  styles.ingredientBoxOuter,
+                  { backgroundColor: theme.inputBg },
+                ]}
+              >
                 <View style={styles.ingredientRow}>
                   <TouchableOpacity
-                    style={styles.ingImageBtn}
+                    style={[
+                      styles.ingImageBtn,
+                      {
+                        backgroundColor: isDark ? "#333" : "#fff",
+                        borderColor: theme.border,
+                      },
+                    ]}
                     onPress={() => pickImage("ingredient")}
                   >
                     {ingredientImage ? (
@@ -421,25 +518,48 @@ export default function Mypersonalrecipe() {
                         style={styles.ingImgPreview}
                       />
                     ) : (
-                      <Ionicons name="camera-outline" size={20} color="#666" />
+                      <Ionicons
+                        name="camera-outline"
+                        size={20}
+                        color={isDark ? "#aaa" : "#666"}
+                      />
                     )}
                   </TouchableOpacity>
                   <TextInput
-                    style={[styles.miniInput, { flex: 2 }]}
+                    style={[
+                      styles.miniInput,
+                      {
+                        flex: 2,
+                        backgroundColor: isDark ? "#333" : "#fff",
+                        borderColor: theme.border,
+                        color: theme.text,
+                      },
+                    ]}
                     placeholder="Item (e.g. Rice)"
                     value={ingredientName}
                     onChangeText={setIngredientName}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.placeholder}
                   />
                   <TextInput
-                    style={[styles.miniInput, { flex: 1 }]}
+                    style={[
+                      styles.miniInput,
+                      {
+                        flex: 1,
+                        backgroundColor: isDark ? "#333" : "#fff",
+                        borderColor: theme.border,
+                        color: theme.text,
+                      },
+                    ]}
                     placeholder="Qty"
                     value={ingredientQty}
                     onChangeText={setIngredientQty}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.placeholder}
                   />
                   <TouchableOpacity
-                    style={styles.plusBtn}
+                    style={[
+                      styles.plusBtn,
+                      { backgroundColor: isDark ? "#444" : "#1a1a1a" },
+                    ]}
                     onPress={addIngredient}
                   >
                     <Ionicons name="add" size={24} color="#fff" />
@@ -449,16 +569,25 @@ export default function Mypersonalrecipe() {
 
               <View style={styles.ingListPreview}>
                 {ingredients.map((ing) => (
-                  <View key={ing.id} style={styles.ingItem}>
+                  <View
+                    key={ing.id}
+                    style={[
+                      styles.ingItem,
+                      {
+                        backgroundColor: theme.inputBg,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
                     {ing.image && (
                       <Image
                         source={{ uri: ing.image }}
                         style={styles.miniIngImg}
                       />
                     )}
-                    <Text style={styles.ingText}>
+                    <Text style={[styles.ingText, { color: theme.text }]}>
                       {ing.name}{" "}
-                      <Text style={{ fontWeight: "400", color: "#666" }}>
+                      <Text style={{ fontWeight: "400", color: theme.subText }}>
                         ({ing.measure})
                       </Text>
                     </Text>
@@ -469,19 +598,28 @@ export default function Mypersonalrecipe() {
                 ))}
               </View>
 
-              <Text style={[styles.label, { marginTop: 15 }]}>
+              <Text
+                style={[styles.label, { marginTop: 15, color: theme.text }]}
+              >
                 Instructions
               </Text>
               <TextInput
                 style={[
                   styles.input,
-                  { height: 120, paddingTop: 12, textAlignVertical: "top" },
+                  {
+                    height: 120,
+                    paddingTop: 12,
+                    textAlignVertical: "top",
+                    backgroundColor: theme.inputBg,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  },
                 ]}
                 multiline
                 placeholder="Step 1: Chop the onions..."
                 value={instructions}
                 onChangeText={setInstructions}
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.placeholder}
               />
 
               <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
@@ -498,7 +636,7 @@ export default function Mypersonalrecipe() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1 },
 
   listHeader: {
     flexDirection: "row",
@@ -511,10 +649,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#1a1a1a",
     letterSpacing: -0.5,
   },
-  headerSubtitle: { fontSize: 14, color: "#666", marginTop: 2 },
+  headerSubtitle: { fontSize: 14, marginTop: 2 },
   addBtn: {
     backgroundColor: "#FF6347",
     width: 50,
@@ -563,7 +700,6 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   modalContent: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 20,
@@ -578,7 +714,6 @@ const styles = StyleSheet.create({
   dragHandle: {
     width: 40,
     height: 5,
-    backgroundColor: "#E0E0E0",
     borderRadius: 3,
     alignSelf: "center",
     marginBottom: 15,
@@ -590,23 +725,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  modalTitle: { fontSize: 24, fontWeight: "800", color: "#333" },
+  modalTitle: { fontSize: 24, fontWeight: "800" },
   closeBtn: {
     padding: 5,
-    backgroundColor: "#F5F5F5",
     borderRadius: 20,
   },
 
   imagePlaceholder: {
     width: "100%",
     height: 200,
-    backgroundColor: "#FFF0ED",
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
     borderWidth: 2,
-    borderColor: "#FF6347",
     borderStyle: "dashed",
     overflow: "hidden",
   },
@@ -617,28 +749,21 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#333",
     marginBottom: 8,
     marginLeft: 4,
   },
   input: {
-    backgroundColor: "#F9F9F9",
     padding: 16,
     borderRadius: 16,
     marginBottom: 15,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
-    color: "#333",
   },
   miniInput: {
-    backgroundColor: "#fff",
     padding: 12,
     borderRadius: 12,
     fontSize: 14,
     borderWidth: 1,
-    borderColor: "#eee",
-    color: "#333",
   },
 
   chipContainer: { flexDirection: "row", marginBottom: 20 },
@@ -646,29 +771,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 25,
-    backgroundColor: "#F5F5F5",
     marginRight: 8,
     borderWidth: 1,
-    borderColor: "#EEE",
   },
   chipActive: { backgroundColor: "#FF6347", borderColor: "#FF6347" },
-  chipText: { fontSize: 14, color: "#666", fontWeight: "600" },
+  chipText: { fontSize: 14, fontWeight: "600" },
   chipTextActive: { color: "#fff" },
 
   ytInputRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F9F9F9",
     borderRadius: 16,
     paddingHorizontal: 16,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
     height: 55,
   },
 
   ingredientBoxOuter: {
-    backgroundColor: "#F9F9F9",
     padding: 12,
     borderRadius: 16,
     marginBottom: 10,
@@ -677,17 +797,14 @@ const styles = StyleSheet.create({
   ingImageBtn: {
     width: 48,
     height: 48,
-    backgroundColor: "#fff",
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#eee",
     overflow: "hidden",
   },
   ingImgPreview: { width: "100%", height: "100%" },
   plusBtn: {
-    backgroundColor: "#1a1a1a",
     width: 48,
     height: 48,
     borderRadius: 12,
@@ -699,12 +816,10 @@ const styles = StyleSheet.create({
   ingItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF",
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#EEE",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -712,7 +827,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   miniIngImg: { width: 20, height: 20, borderRadius: 10, marginRight: 6 },
-  ingText: { color: "#333", fontSize: 13, fontWeight: "600", marginRight: 8 },
+  ingText: { fontSize: 13, fontWeight: "600", marginRight: 8 },
 
   saveBtn: {
     backgroundColor: "#FF6347",
@@ -729,6 +844,6 @@ const styles = StyleSheet.create({
   saveBtnText: { color: "#fff", fontSize: 18, fontWeight: "800" },
 
   emptyContainer: { alignItems: "center", marginTop: 80, padding: 20 },
-  emptyText: { marginTop: 15, fontSize: 18, fontWeight: "700", color: "#333" },
-  emptySubText: { marginTop: 5, fontSize: 14, color: "#999" },
+  emptyText: { marginTop: 15, fontSize: 18, fontWeight: "700" },
+  emptySubText: { marginTop: 5, fontSize: 14 },
 });

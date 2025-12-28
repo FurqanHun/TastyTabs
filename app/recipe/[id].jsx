@@ -29,6 +29,8 @@ export default function RecipeDetail() {
   const router = useRouter();
   const dispatch = useDispatch();
 
+  const isDark = useSelector((state) => state.preferences.darkMode);
+
   const { width } = useWindowDimensions();
   const VIDEO_HEIGHT = width * (9 / 16);
   const STATUS_BAR_HEIGHT =
@@ -66,7 +68,23 @@ export default function RecipeDetail() {
   const [note, setNote] = useState(personalNote);
   const [tempNote, setTempNote] = useState(personalNote);
 
-  // Sync internal note state with redux when it changes
+  //   DYNAMIC THEME COLORS
+  const theme = {
+    bg: isDark ? "#121212" : "#FFF",
+    cardBg: isDark ? "#1E1E1E" : "#fff",
+    text: isDark ? "#fff" : "#333",
+    subText: isDark ? "#aaa" : "#555",
+    border: isDark ? "#333" : "#F0F0F0",
+    tagBg: isDark ? "#333" : "#F0F0F0",
+    tagText: isDark ? "#ccc" : "#555",
+    ingBg: isDark ? "#2C2C2E" : "#FAFAFA",
+    noteBg: isDark ? "#252525" : "#FAFAFA",
+    modalBg: isDark ? "#1E1E1E" : "#FFF",
+    inputColor: isDark ? "#fff" : "#333",
+    iconBtnBg: isDark ? "rgba(30,30,30,0.8)" : "rgba(255,255,255,0.95)",
+    iconColor: isDark ? "#fff" : "#333",
+  };
+
   useEffect(() => {
     setNote(personalNote);
     setTempNote(personalNote);
@@ -79,7 +97,6 @@ export default function RecipeDetail() {
     }
   }, [isNoteModalVisible]);
 
-  // --- Handlers ---
   const openNoteModal = () => {
     setTempNote(note);
     setNoteModalVisible(true);
@@ -99,13 +116,12 @@ export default function RecipeDetail() {
     if (!meal) return [];
     if (personalMeal && Array.isArray(meal.ingredients)) {
       return meal.ingredients.map((item) => ({
-        name: item.name || item, // Agar object hai to name property, warna string
+        name: item.name || item,
         measure: item.measure || "",
         image: item.image,
       }));
     }
 
-    // Agar API wala format hai (strIngredient1...20)
     let list = [];
     for (let i = 1; i <= 20; i++) {
       const ing = meal[`strIngredient${i}`];
@@ -116,6 +132,7 @@ export default function RecipeDetail() {
     }
     return list;
   };
+
   const getYouTubeId = (url) => {
     if (!url) return null;
     try {
@@ -128,7 +145,7 @@ export default function RecipeDetail() {
 
   if (isLoading && !personalMeal) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: theme.bg }]}>
         <ActivityIndicator size="large" color="#ff6347" />
       </View>
     );
@@ -136,8 +153,8 @@ export default function RecipeDetail() {
 
   if (!meal) {
     return (
-      <View style={styles.center}>
-        <Text>Recipe not found</Text>
+      <View style={[styles.center, { backgroundColor: theme.bg }]}>
+        <Text style={{ color: theme.text }}>Recipe not found</Text>
         <TouchableOpacity
           onPress={() => router.back()}
           style={{ marginTop: 10 }}
@@ -151,10 +168,16 @@ export default function RecipeDetail() {
   const videoId = getYouTubeId(meal?.strYoutube);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#FFF" }}>
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <StatusBar
-        barStyle={playVideo ? "light-content" : "dark-content"}
-        backgroundColor={playVideo ? "#000" : "#fff"}
+        barStyle={
+          playVideo
+            ? "light-content"
+            : isDark
+              ? "light-content"
+              : "dark-content"
+        }
+        backgroundColor={playVideo ? "#000" : isDark ? "#121212" : "#fff"}
       />
       <Stack.Screen options={{ headerShown: false }} />
 
@@ -171,16 +194,19 @@ export default function RecipeDetail() {
       {!playVideo && (
         <View style={styles.floatingHeader}>
           <TouchableOpacity
-            style={styles.iconBtn}
+            style={[styles.iconBtn, { backgroundColor: theme.iconBtnBg }]}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={24} color="#333" />
+            <Ionicons name="arrow-back" size={24} color={theme.iconColor} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={handleToggleVault}>
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: theme.iconBtnBg }]}
+            onPress={handleToggleVault}
+          >
             <Ionicons
               name={isVaulted ? "heart" : "heart-outline"}
               size={24}
-              color={isVaulted ? "#FF6347" : "#333"}
+              color={isVaulted ? "#FF6347" : theme.iconColor}
             />
           </TouchableOpacity>
         </View>
@@ -188,13 +214,16 @@ export default function RecipeDetail() {
 
       <ScrollView
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 30 }}
         bounces={false}
       >
         <View
           style={[
             styles.heroWrapper,
-            { height: playVideo ? VIDEO_HEIGHT + 30 : 350 },
+            {
+              height: playVideo ? VIDEO_HEIGHT + 30 : 350,
+              backgroundColor: theme.bg,
+            },
           ]}
         >
           {playVideo && videoId ? (
@@ -214,10 +243,18 @@ export default function RecipeDetail() {
           )}
         </View>
 
-        <View style={[styles.card, { marginTop: -30 }]}>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: theme.cardBg, marginTop: -30 },
+          ]}
+        >
           {playVideo && (
             <TouchableOpacity
-              style={styles.inlineCloseBtn}
+              style={[
+                styles.inlineCloseBtn,
+                { backgroundColor: isDark ? "#331111" : "#FFF0ED" },
+              ]}
               onPress={() => setPlayVideo(false)}
             >
               <Ionicons name="close-circle" size={20} color="#FF6347" />
@@ -225,17 +262,33 @@ export default function RecipeDetail() {
             </TouchableOpacity>
           )}
 
-          <Text style={styles.title}>{meal?.strMeal}</Text>
+          <Text style={[styles.title, { color: theme.text }]}>
+            {meal?.strMeal}
+          </Text>
 
           <View style={styles.tagRow}>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>
+            <View style={[styles.tag, { backgroundColor: theme.tagBg }]}>
+              <Text style={[styles.tagText, { color: theme.tagText }]}>
                 {meal?.strCategory || "Custom"}
               </Text>
             </View>
-            <View style={[styles.tag, { marginLeft: 10 }]}>
-              <Ionicons name="location-outline" size={14} color="#666" />
-              <Text style={[styles.tagText, { marginLeft: 4 }]}>
+            <View
+              style={[
+                styles.tag,
+                { marginLeft: 10, backgroundColor: theme.tagBg },
+              ]}
+            >
+              <Ionicons
+                name="location-outline"
+                size={14}
+                color={theme.subText}
+              />
+              <Text
+                style={[
+                  styles.tagText,
+                  { marginLeft: 4, color: theme.tagText },
+                ]}
+              >
                 {meal?.strArea || "Personal"}
               </Text>
             </View>
@@ -243,7 +296,10 @@ export default function RecipeDetail() {
               <View
                 style={[
                   styles.tag,
-                  { marginLeft: 10, backgroundColor: "#E3F2FD" },
+                  {
+                    marginLeft: 10,
+                    backgroundColor: isDark ? "#102a44" : "#E3F2FD",
+                  },
                 ]}
               >
                 <Text style={[styles.tagText, { color: "#1E88E5" }]}>
@@ -263,9 +319,11 @@ export default function RecipeDetail() {
             </TouchableOpacity>
           )}
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-          <Text style={styles.sectionHeader}>Ingredients</Text>
+          <Text style={[styles.sectionHeader, { color: theme.text }]}>
+            Ingredients
+          </Text>
           <View style={styles.ingredientsList}>
             {getIngredientsList().map((item, idx) => {
               const isApiIngredient = !personalMeal;
@@ -274,8 +332,22 @@ export default function RecipeDetail() {
                 : item?.image;
 
               return (
-                <View key={idx} style={styles.ingredientItem}>
-                  <View style={styles.ingredientImageContainer}>
+                <View
+                  key={idx}
+                  style={[
+                    styles.ingredientItem,
+                    { backgroundColor: theme.ingBg },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.ingredientImageContainer,
+                      {
+                        backgroundColor: theme.cardBg,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
                     {ingUrl ? (
                       <Image
                         source={{ uri: ingUrl }}
@@ -286,33 +358,59 @@ export default function RecipeDetail() {
                       <Ionicons
                         name="restaurant-outline"
                         size={20}
-                        color="#CCC"
+                        color={isDark ? "#555" : "#CCC"}
                       />
                     )}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.ingredientName}>{item.name}</Text>
-                    <Text style={styles.ingredientMeasure}>{item.measure}</Text>
+                    <Text
+                      style={[styles.ingredientName, { color: theme.text }]}
+                    >
+                      {item.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.ingredientMeasure,
+                        { color: theme.subText },
+                      ]}
+                    >
+                      {item.measure}
+                    </Text>
                   </View>
                 </View>
               );
             })}
           </View>
 
-          <View style={styles.divider} />
-          <Text style={styles.sectionHeader}>Instructions</Text>
-          <Text style={styles.instructions}>{meal?.strInstructions}</Text>
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <Text style={[styles.sectionHeader, { color: theme.text }]}>
+            Instructions
+          </Text>
+          <Text
+            style={[styles.instructions, { color: isDark ? "#DDD" : "#444" }]}
+          >
+            {meal?.strInstructions}
+          </Text>
 
-          <View style={styles.divider} />
-          <Text style={styles.sectionHeader}>My Personal Note</Text>
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <Text style={[styles.sectionHeader, { color: theme.text }]}>
+            My Personal Note
+          </Text>
           <TouchableOpacity
-            style={styles.notePreviewWrapper}
+            style={[
+              styles.notePreviewWrapper,
+              { backgroundColor: theme.noteBg, borderColor: theme.border },
+            ]}
             onPress={openNoteModal}
           >
             {note.length > 0 ? (
-              <Text style={styles.notePreviewText}>{note}</Text>
+              <Text style={[styles.notePreviewText, { color: theme.text }]}>
+                {note}
+              </Text>
             ) : (
-              <Text style={styles.notePlaceholderText}>
+              <Text
+                style={[styles.notePlaceholderText, { color: theme.subText }]}
+              >
                 Tap to add a personal note...
               </Text>
             )}
@@ -342,20 +440,23 @@ export default function RecipeDetail() {
           <TouchableWithoutFeedback onPress={saveAndCloseModal}>
             <View style={styles.modalBackdrop} />
           </TouchableWithoutFeedback>
-          <View style={styles.popOutBox}>
+          <View style={[styles.popOutBox, { backgroundColor: theme.modalBg }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Personal Note</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>
+                Personal Note
+              </Text>
               <TouchableOpacity onPress={saveAndCloseModal}>
                 <Ionicons name="checkmark-circle" size={30} color="#FF6347" />
               </TouchableOpacity>
             </View>
             <TextInput
               ref={modalInputRef}
-              style={styles.modalInput}
+              style={[styles.modalInput, { color: theme.inputColor }]}
               multiline
               value={tempNote}
               onChangeText={setTempNote}
               placeholder="Type your thoughts here..."
+              placeholderTextColor={theme.subText}
             />
           </View>
         </KeyboardAvoidingView>
@@ -365,14 +466,13 @@ export default function RecipeDetail() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF" },
+  container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   inlineCloseBtn: {
     flexDirection: "row",
     alignSelf: "flex-start",
     alignItems: "center",
     marginBottom: 10,
-    backgroundColor: "#FFF0ED",
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
@@ -396,32 +496,29 @@ const styles = StyleSheet.create({
     width: 45,
     height: 45,
     borderRadius: 25,
-    backgroundColor: "rgba(255,255,255,0.95)",
     justifyContent: "center",
     alignItems: "center",
     elevation: 5,
   },
-  heroWrapper: { width: "100%", backgroundColor: "#fff", zIndex: 1 },
+  heroWrapper: { width: "100%", zIndex: 1 },
   heroImage: { width: "100%", height: "100%", resizeMode: "cover" },
   card: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     padding: 24,
     minHeight: 500,
     zIndex: 2,
   },
-  title: { fontSize: 26, fontWeight: "800", color: "#333", marginBottom: 10 },
+  title: { fontSize: 26, fontWeight: "800", marginBottom: 10 },
   tagRow: { flexDirection: "row", marginBottom: 20 },
   tag: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0F0F0",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
-  tagText: { fontSize: 14, color: "#555", fontWeight: "600" },
+  tagText: { fontSize: 14, fontWeight: "600" },
   ytBtn: {
     flexDirection: "row",
     backgroundColor: "#FF6347",
@@ -436,55 +533,47 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#333",
     marginTop: 10,
     marginBottom: 15,
   },
-  divider: { height: 1, backgroundColor: "#F0F0F0", marginVertical: 24 },
+  divider: { height: 1, marginVertical: 24 },
   ingredientsList: { gap: 12 },
   ingredientItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FAFAFA",
     padding: 10,
     borderRadius: 12,
   },
   ingredientImageContainer: {
     width: 50,
     height: 50,
-    backgroundColor: "#FFF",
     borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 15,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
   },
   ingredientImage: { width: 35, height: 35 },
   ingredientName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
     textTransform: "capitalize",
   },
-  ingredientMeasure: { fontSize: 14, color: "#888", marginTop: 2 },
+  ingredientMeasure: { fontSize: 14, marginTop: 2 },
   instructions: {
     fontSize: 16,
     lineHeight: 28,
-    color: "#444",
     textAlign: "left",
   },
   notePreviewWrapper: {
-    backgroundColor: "#FAFAFA",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
     padding: 16,
     minHeight: 80,
     justifyContent: "center",
   },
-  notePreviewText: { fontSize: 15, color: "#333", lineHeight: 22 },
-  notePlaceholderText: { fontSize: 15, color: "#999", fontStyle: "italic" },
+  notePreviewText: { fontSize: 15, lineHeight: 22 },
+  notePlaceholderText: { fontSize: 15, fontStyle: "italic" },
   editIconBadge: {
     position: "absolute",
     bottom: 10,
@@ -520,7 +609,6 @@ const styles = StyleSheet.create({
   modalBackdrop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
   popOutBox: {
     width: "100%",
-    backgroundColor: "#FFF",
     borderRadius: 20,
     padding: 20,
     elevation: 10,
@@ -532,10 +620,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 15,
   },
-  modalTitle: { fontSize: 18, fontWeight: "800", color: "#333" },
+  modalTitle: { fontSize: 18, fontWeight: "800" },
   modalInput: {
     fontSize: 16,
-    color: "#333",
     lineHeight: 24,
     minHeight: 100,
     textAlignVertical: "top",

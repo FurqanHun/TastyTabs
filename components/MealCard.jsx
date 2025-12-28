@@ -19,6 +19,8 @@ const MealCardComponent = ({ meal, isHero }) => {
   const router = useRouter();
   const dispatch = useDispatch();
 
+  const isDark = useSelector((state) => state.preferences.darkMode);
+
   // --- Vault Logic ---
   const isSaved = useSelector((state) => {
     //safe check: Handles both Array and Object structures
@@ -43,6 +45,9 @@ const MealCardComponent = ({ meal, isHero }) => {
 
   const scale = useRef(new Animated.Value(1)).current;
 
+  // DYNAMIC CARD BACKGROUND (Prevents white flash on load)
+  const cardBgStyle = { backgroundColor: isDark ? "#1E1E1E" : "#fff" };
+
   const animateIn = () => {
     if (Platform.OS === "web") {
       Animated.spring(scale, { toValue: 1.03, useNativeDriver: true }).start();
@@ -64,7 +69,11 @@ const MealCardComponent = ({ meal, isHero }) => {
       style={{ margin: 6 }}
     >
       <Animated.View
-        style={[styles.card, { width: cardWidth, transform: [{ scale }] }]}
+        style={[
+          styles.card,
+          cardBgStyle,
+          { width: cardWidth, transform: [{ scale }] },
+        ]}
       >
         <ImageBackground
           source={{ uri: meal.strMealThumb }}
@@ -87,6 +96,7 @@ const MealCardComponent = ({ meal, isHero }) => {
           </TouchableOpacity>
 
           <View style={styles.textContainer}>
+            {/* 🦍 Text stays White because it's on an image overlay */}
             <Text style={[styles.name, { fontSize: isHero ? 20 : 16 }]}>
               {meal.strMeal}
             </Text>
@@ -115,7 +125,6 @@ export { MealCard };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
     borderRadius: 16,
     overflow: "hidden",
     shadowColor: "#000",

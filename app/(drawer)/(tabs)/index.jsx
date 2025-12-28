@@ -10,11 +10,13 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
-
+import { useSelector } from "react-redux";
 import { fetchMeals } from "../../../api/listallmeals";
 import { MealCard } from "../../../components/MealCard";
 
 export default function Index() {
+  const isDark = useSelector((state) => state.preferences.darkMode);
+
   const {
     data: rawData,
     isLoading,
@@ -33,14 +35,17 @@ export default function Index() {
     ? Array.from(new Map(rawData.map((item) => [item.idMeal, item])).values())
     : [];
 
-
-   
+  //    DYNAMIC STYLES
+  const containerBg = { backgroundColor: isDark ? "#121212" : "#fff" };
+  const textColor = { color: isDark ? "#fff" : "#1a1a1a" };
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, containerBg]}>
         <ActivityIndicator size="large" color="#ff6347" />
-        <Text style={{ marginTop: 10 }}>Fetching fresh meals...</Text>
+        <Text style={{ marginTop: 10, color: isDark ? "#aaa" : "#666" }}>
+          Fetching fresh meals...
+        </Text>
       </View>
     );
   }
@@ -62,9 +67,9 @@ export default function Index() {
     Platform.OS === "android" ? (StatusBar.currentHeight || 24) + 20 : 60;
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+    <View style={[{ flex: 1 }, containerBg]}>
       <StatusBar
-        barStyle="dark-content"
+        barStyle={isDark ? "light-content" : "dark-content"}
         backgroundColor="transparent"
         translucent
       />
@@ -95,7 +100,9 @@ export default function Index() {
         )}
         ListHeaderComponent={
           <View>
-            <Text style={styles.sectionLabel}>Featured Dishes</Text>
+            <Text style={[styles.sectionLabel, textColor]}>
+              Featured Dishes
+            </Text>
             <View style={styles.sameGrid}>
               {heroMeals.map((meal) => (
                 <View
@@ -106,7 +113,9 @@ export default function Index() {
                 </View>
               ))}
             </View>
-            <Text style={styles.sectionLabel}>More Discoveries</Text>
+            <Text style={[styles.sectionLabel, textColor]}>
+              More Discoveries
+            </Text>
           </View>
         }
       />
@@ -125,7 +134,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginBottom: 10,
     marginHorizontal: 16,
-    color: "#1a1a1a",
     letterSpacing: -0.5,
   },
   sameGrid: {

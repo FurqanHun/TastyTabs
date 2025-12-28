@@ -1,16 +1,53 @@
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import * as SplashScreen from 'expo-splash-screen'; // 1. Import Splash Screen
+import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Provider } from "react-redux";
+import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { persistor, store } from "../store/store";
+import {
+  ThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+} from "@react-navigation/native";
+import { StatusBar } from "react-native";
 
 SplashScreen.preventAutoHideAsync();
-
 const queryClient = new QueryClient();
+
+//WRAPPER COMPONENT
+// We need this because we can't use 'useSelector' directly in RootLayout
+// (because RootLayout is what *provides* the store, it's not *inside* it yet)
+function MainLayout() {
+  const isDark = useSelector((state) => state.preferences.darkMode);
+
+  return (
+    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={isDark ? "#121212" : "transparent"}
+        translucent={true}
+      />
+
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(drawer)" />
+          {/* 🦍 NOTE: We hide the default header for recipe/[id]
+              because we built a custom floating header inside that file.
+          */}
+          <Stack.Screen
+            name="recipe/[id]"
+            options={{
+              headerShown: false,
+              presentation: "card",
+            }}
+          />
+        </Stack>
+      </GestureHandlerRootView>
+    </ThemeProvider>
+  );
+}
 
 export default function RootLayout() {
   const [appIsReady, setAppIsReady] = useState(false);
@@ -18,15 +55,14 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
-        await new Promise(resolve => setTimeout(resolve, 2000)); 
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       } catch (e) {
         console.warn(e);
       } finally {
         setAppIsReady(true);
-        await SplashScreen.hideAsync(); 
+        await SplashScreen.hideAsync();
       }
     }
-
     prepare();
   }, []);
 
@@ -38,12 +74,8 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(drawer)" />
-              <Stack.Screen name="recipe/[id]" options={{ headerShown: true }} />
-            </Stack>
-          </GestureHandlerRootView>
+          {/*Render the MainLayout INSIDE the Provider */}
+          <MainLayout />
         </PersistGate>
       </Provider>
     </QueryClientProvider>

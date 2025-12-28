@@ -5,6 +5,7 @@ import personalNotesReducer from "./Slices/personalNotesSlice";
 import RecipeReducer from "./Slices/recipeSlice.js";
 import vaultReducer from "./Slices/vaultSlice";
 import PersonalRecipeReducer from "./Slices/personalrecipesSlice.js";
+import preferencesReducer from "./Slices/preferencesSlice";
 
 // --- SSR Fix Start ---
 // Ye dummy storage server-side par error nahi dega
@@ -30,14 +31,15 @@ const storage =
 const persistConfig = {
   key: "root",
   storage, // Yahan hamara naya 'storage' logic use ho raha hai
-  whitelist: ["vault", "personalNotes" , "personalrecipes"], // Sirf vault ko persist karein
+  whitelist: ["vault", "personalNotes", "personalrecipes", "preferences"],
 };
 
 const rootReducer = combineReducers({
   personalNotes: personalNotesReducer,
   vault: vaultReducer,
   recipe: RecipeReducer,
-  personalrecipes:PersonalRecipeReducer
+  personalrecipes: PersonalRecipeReducer,
+  preferences: preferencesReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

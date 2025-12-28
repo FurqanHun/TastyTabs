@@ -56,6 +56,8 @@ export default function SearchScreen() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
+  const isDark = useSelector((state) => state.preferences.darkMode);
+
   const { allmeals } = useSelector((state) => state.recipe);
   const myRecipes = useSelector((state) => state.personalrecipes.allmyrecipes);
 
@@ -69,6 +71,21 @@ export default function SearchScreen() {
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
   const numColumns = width > 1024 ? 3 : width > 768 ? 2 : 1;
+
+  // 🦍 DYNAMIC STYLES CONSTANTS
+  const themeColors = {
+    bg: isDark ? "#121212" : "#F8F9FA",
+    headerBg: isDark ? "#121212" : "#fff",
+    border: isDark ? "#333" : "#f0f0f0",
+    searchBg: isDark ? "#1E1E1E" : "#F5F5F5",
+    text: isDark ? "#fff" : "#333",
+    subText: isDark ? "#aaa" : "#999",
+    cardBg: isDark ? "#1E1E1E" : "#FFF",
+    borderColor: isDark ? "#333" : "#E0E0E0",
+    chipBg: isDark ? "#1E1E1E" : "#FFF",
+    chipBorder: isDark ? "#333" : "#EEE",
+    sortRowBg: isDark ? "#121212" : "#F8F9FA",
+  };
 
   const handleSearchTextChange = (text) => {
     setSearch(text);
@@ -197,8 +214,6 @@ export default function SearchScreen() {
     setShowFilters(!showFilters);
   };
 
-  // Extract renderItem with useCallback
-  // prevents sheise React from thinking every row is darn new on every render
   const renderItem = useCallback(
     ({ item }) => (
       <View style={{ width: width / numColumns - 16, margin: 8 }}>
@@ -209,14 +224,32 @@ export default function SearchScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.headerWrapper}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top, backgroundColor: themeColors.bg },
+      ]}
+    >
+      <View
+        style={[
+          styles.headerWrapper,
+          {
+            backgroundColor: themeColors.headerBg,
+            borderBottomColor: themeColors.border,
+          },
+        ]}
+      >
         <View style={styles.headerRow}>
-          <View style={styles.searchContainer}>
+          <View
+            style={[
+              styles.searchContainer,
+              { backgroundColor: themeColors.searchBg },
+            ]}
+          >
             <Ionicons
               name="search"
               size={20}
-              color="#999"
+              color={themeColors.subText}
               style={{ marginRight: 8 }}
             />
             <TextInput
@@ -226,10 +259,9 @@ export default function SearchScreen() {
                   : `Search by ${searchMode}...`
               }
               value={search}
-              // custom handler to auto open filters
               onChangeText={handleSearchTextChange}
-              style={styles.searchInput}
-              placeholderTextColor="#999"
+              style={[styles.searchInput, { color: themeColors.text }]}
+              placeholderTextColor={themeColors.subText}
             />
             {search.length > 0 && (
               <TouchableOpacity onPress={() => setSearch("")}>
@@ -238,13 +270,20 @@ export default function SearchScreen() {
             )}
           </View>
           <TouchableOpacity
-            style={[styles.filterBtn, showFilters && styles.filterBtnActive]}
+            style={[
+              styles.filterBtn,
+              {
+                backgroundColor: themeColors.cardBg,
+                borderColor: themeColors.borderColor,
+              },
+              showFilters && styles.filterBtnActive,
+            ]}
             onPress={toggleFilters}
           >
             <Ionicons
               name="options-outline"
               size={22}
-              color={showFilters ? "#fff" : "#333"}
+              color={showFilters ? "#fff" : themeColors.text}
             />
           </TouchableOpacity>
         </View>
@@ -261,6 +300,10 @@ export default function SearchScreen() {
                   key={mode.id}
                   style={[
                     styles.chip,
+                    {
+                      backgroundColor: themeColors.chipBg,
+                      borderColor: themeColors.chipBorder,
+                    },
                     searchMode === mode.id && styles.chipActive,
                   ]}
                   onPress={() => setSearchMode(mode.id)}
@@ -268,6 +311,7 @@ export default function SearchScreen() {
                   <Text
                     style={[
                       styles.chipText,
+                      { color: isDark ? "#ccc" : "#666" },
                       searchMode === mode.id && styles.chipTextActive,
                     ]}
                   >
@@ -280,8 +324,16 @@ export default function SearchScreen() {
         )}
       </View>
 
-      <View style={styles.sortRow}>
-        <Text style={styles.resultsCount}>
+      <View
+        style={[
+          styles.sortRow,
+          {
+            backgroundColor: themeColors.sortRowBg,
+            borderTopColor: themeColors.border,
+          },
+        ]}
+      >
+        <Text style={[styles.resultsCount, { color: themeColors.subText }]}>
           {finalDisplayData.length} Results
         </Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
@@ -289,11 +341,16 @@ export default function SearchScreen() {
             <TouchableOpacity
               key={type}
               onPress={() => setSort(type)}
-              style={[styles.sortBtn, sort === type && styles.sortBtnActive]}
+              style={[
+                styles.sortBtn,
+                { backgroundColor: isDark ? "#333" : "#EEE" },
+                sort === type && styles.sortBtnActive,
+              ]}
             >
               <Text
                 style={[
                   styles.sortBtnText,
+                  { color: themeColors.text },
                   sort === type && styles.sortBtnTextActive,
                 ]}
               >
@@ -306,8 +363,10 @@ export default function SearchScreen() {
 
       {/* CATEGORY FILTERS (Only show if browsing & filters on) */}
       {showFilters && !debouncedSearch && (
-        <View style={styles.filterPanel}>
-          <Text style={styles.sectionTitle}>Browse Categories</Text>
+        <View style={[styles.filterPanel, { backgroundColor: themeColors.bg }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+            Browse Categories
+          </Text>
           {catLoading ? (
             <LoadingChips />
           ) : (
@@ -321,6 +380,10 @@ export default function SearchScreen() {
                 <TouchableOpacity
                   style={[
                     styles.chip,
+                    {
+                      backgroundColor: themeColors.chipBg,
+                      borderColor: themeColors.chipBorder,
+                    },
                     selectedCategory === item.strCategory && styles.chipActive,
                   ]}
                   onPress={() =>
@@ -334,6 +397,7 @@ export default function SearchScreen() {
                   <Text
                     style={[
                       styles.chipText,
+                      { color: isDark ? "#ccc" : "#666" },
                       selectedCategory === item.strCategory &&
                         styles.chipTextActive,
                     ]}
@@ -350,7 +414,7 @@ export default function SearchScreen() {
       {apiLoading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#FF6347" />
-          <Text style={{ color: "#888", marginTop: 10 }}>
+          <Text style={{ color: themeColors.subText, marginTop: 10 }}>
             Searching global database...
           </Text>
         </View>
@@ -382,9 +446,15 @@ export default function SearchScreen() {
               <Ionicons
                 name={debouncedSearch ? "sad-outline" : "restaurant-outline"}
                 size={60}
-                color="#eee"
+                color={isDark ? "#333" : "#eee"}
               />
-              <Text style={{ color: "#999", marginTop: 10, fontSize: 16 }}>
+              <Text
+                style={{
+                  color: themeColors.subText,
+                  marginTop: 10,
+                  fontSize: 16,
+                }}
+              >
                 {debouncedSearch
                   ? "No matching recipes found."
                   : "Start typing to search!"}
@@ -405,12 +475,10 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8F9FA" },
+  container: { flex: 1 },
   headerWrapper: {
-    backgroundColor: "#fff",
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
   },
   headerRow: {
     flexDirection: "row",
@@ -424,32 +492,28 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 45,
   },
-  searchInput: { flex: 1, fontSize: 15, color: "#333", height: "100%" },
+  searchInput: { flex: 1, fontSize: 15, height: "100%" },
 
   filterBtn: {
     width: 45,
     height: 45,
     borderRadius: 12,
-    backgroundColor: "#FFF",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
   },
   filterBtnActive: { backgroundColor: "#FF6347", borderColor: "#FF6347" },
 
   modeRow: { marginTop: 5 },
 
-  filterPanel: { paddingVertical: 10, backgroundColor: "#F8F9FA" },
+  filterPanel: { paddingVertical: 10 },
   sectionTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#333",
     marginBottom: 8,
     marginLeft: 16,
   },
@@ -457,13 +521,11 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: "#FFF",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#EEE",
   },
   chipActive: { backgroundColor: "#FF6347", borderColor: "#FF6347" },
-  chipText: { color: "#666", fontWeight: "600", fontSize: 12 },
+  chipText: { fontWeight: "600", fontSize: 12 },
   chipTextActive: { color: "#FFF" },
 
   center: {
@@ -480,17 +542,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: "#EEE",
-    backgroundColor: "#F8F9FA",
   },
-  resultsCount: { color: "#888", fontSize: 12, fontWeight: "500" },
+  resultsCount: { fontSize: 12, fontWeight: "500" },
   sortBtn: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: "#EEE",
   },
   sortBtnActive: { backgroundColor: "#FF6347" },
-  sortBtnText: { fontSize: 11, color: "#333" },
+  sortBtnText: { fontSize: 11 },
   sortBtnTextActive: { color: "#FFF" },
 });
