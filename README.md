@@ -20,16 +20,16 @@ The app connects to **TheMealDB API** to fetch global culinary data and uses a l
 
 
 * **The Vault (Privacy-First CRUD):**
-* **Create:** "Heart" a recipe to save it to local storage.
-* **Read:** Access your saved collection instantly.
-* **Update:** Add/Edit personal "Chef Notes" and ratings on saved meals.
-* **Delete:** Remove recipes from the vault with a swipe.
+  * **Create:** "Heart" a recipe to save it to local storage.
+  * **Read:** Access your saved collection instantly.
+  * **Update:** Add/Edit personal "Chef Notes" and ratings on saved meals.
+  * **Delete:** Remove recipes from the vault with a swipe.
 
 * Personal Recipe Creation (Privacy-First CRUD, Local Storage):
-* **Create:** Add a new recipe to your personal collection.
-* **Read:** View your saved personal recipes.
-* **Update:** Edit personal recipe details and ratings.
-* **Delete:** Remove personal recipes from your collection.
+  * **Create:** Add a new recipe to your personal collection.
+  * **Read:** View your saved personal recipes.
+  * **Update:** Edit personal recipe details and ratings.
+  * **Delete:** Remove personal recipes from your collection.
 
 
 
