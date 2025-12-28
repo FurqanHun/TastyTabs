@@ -57,6 +57,7 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
 
   const isDark = useSelector((state) => state.preferences.darkMode);
+  const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
   const { allmeals } = useSelector((state) => state.recipe);
   const myRecipes = useSelector((state) => state.personalrecipes.allmyrecipes);
@@ -72,19 +73,23 @@ export default function SearchScreen() {
 
   const numColumns = width > 1024 ? 3 : width > 768 ? 2 : 1;
 
-  // 🦍 DYNAMIC STYLES CONSTANTS
+  const getThemeColor = (light, dark, amoled) => {
+    return isDark ? (isAmoled ? amoled : dark) : light;
+  };
   const themeColors = {
-    bg: isDark ? "#121212" : "#F8F9FA",
-    headerBg: isDark ? "#121212" : "#fff",
-    border: isDark ? "#333" : "#f0f0f0",
-    searchBg: isDark ? "#1E1E1E" : "#F5F5F5",
+    bg: getThemeColor("#F8F9FA", "#121212", "#000000"),
+    headerBg: getThemeColor("#fff", "#121212", "#000000"),
+    border: getThemeColor("#f0f0f0", "#333", "#222"),
+    // Search Bar needs to stand out against Black
+    searchBg: getThemeColor("#F5F5F5", "#1E1E1E", "#121212"),
     text: isDark ? "#fff" : "#333",
     subText: isDark ? "#aaa" : "#999",
-    cardBg: isDark ? "#1E1E1E" : "#FFF",
-    borderColor: isDark ? "#333" : "#E0E0E0",
-    chipBg: isDark ? "#1E1E1E" : "#FFF",
-    chipBorder: isDark ? "#333" : "#EEE",
-    sortRowBg: isDark ? "#121212" : "#F8F9FA",
+    // Cards/Chips darker in Amoled but visible
+    cardBg: getThemeColor("#FFF", "#1E1E1E", "#121212"),
+    borderColor: getThemeColor("#E0E0E0", "#333", "#222"),
+    chipBg: getThemeColor("#FFF", "#1E1E1E", "#121212"),
+    chipBorder: getThemeColor("#EEE", "#333", "#222"),
+    sortRowBg: getThemeColor("#F8F9FA", "#121212", "#000000"),
   };
 
   const handleSearchTextChange = (text) => {
@@ -343,7 +348,8 @@ export default function SearchScreen() {
               onPress={() => setSort(type)}
               style={[
                 styles.sortBtn,
-                { backgroundColor: isDark ? "#333" : "#EEE" },
+                // Sort Buttons: Light = EEE, Dark = 333, Amoled = 222
+                { backgroundColor: getThemeColor("#EEE", "#333", "#222") },
                 sort === type && styles.sortBtnActive,
               ]}
             >

@@ -16,17 +16,37 @@ import { StatusBar } from "react-native";
 SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
+const AmoledTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: "#000000", // Pure Black
+    card: "#121212", // Dark Grey Cards
+    border: "#222",
+  },
+};
+
 //WRAPPER COMPONENT
 // We need this because we can't use 'useSelector' directly in RootLayout
 // (because RootLayout is what *provides* the store, it's not *inside* it yet)
 function MainLayout() {
   const isDark = useSelector((state) => state.preferences.darkMode);
+  const isAmoled = useSelector((state) => state.preferences.amoledMode);
+
+  const activeTheme = isDark
+    ? isAmoled
+      ? AmoledTheme
+      : DarkTheme
+    : DefaultTheme;
 
   return (
-    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={activeTheme}>
       <StatusBar
         barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor={isDark ? "#121212" : "transparent"}
+        // 🦍 StatusBar Background: Black vs Dark Grey
+        backgroundColor={
+          isDark ? (isAmoled ? "#000000" : "#121212") : "transparent"
+        }
         translucent={true}
       />
 
@@ -38,10 +58,7 @@ function MainLayout() {
           */}
           <Stack.Screen
             name="recipe/[id]"
-            options={{
-              headerShown: false,
-              presentation: "card",
-            }}
+            options={{ headerShown: false, presentation: "card" }}
           />
         </Stack>
       </GestureHandlerRootView>

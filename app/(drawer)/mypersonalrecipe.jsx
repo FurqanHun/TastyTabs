@@ -70,6 +70,7 @@ export default function Mypersonalrecipe() {
   const dispatch = useDispatch();
 
   const isDark = useSelector((state) => state.preferences.darkMode);
+  const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
   const myRecipes = useSelector((state) => state.personalrecipes.allmyrecipes);
 
@@ -99,18 +100,24 @@ export default function Mypersonalrecipe() {
   const [ingredientImage, setIngredientImage] = useState(null);
   const [ingredients, setIngredients] = useState([]);
 
-  //DYNAMIC THEME COLORS
+  const getThemeColor = (light, dark, amoled) =>
+    isDark ? (isAmoled ? amoled : dark) : light;
+
   const theme = {
-    bg: isDark ? "#121212" : "#fff",
+    bg: getThemeColor("#fff", "#121212", "#000000"), // Main BG
     text: isDark ? "#fff" : "#1a1a1a",
     subText: isDark ? "#aaa" : "#666",
-    modalBg: isDark ? "#1E1E1E" : "#fff",
-    inputBg: isDark ? "#2C2C2E" : "#F9F9F9",
-    border: isDark ? "#333" : "#F0F0F0",
-    chipBg: isDark ? "#2C2C2E" : "#F5F5F5",
-    chipBorder: isDark ? "#333" : "#EEE",
+    // Modal: Dark Grey in DarkMode, Slightly lighter Grey in Amoled to contrast against Black BG
+    modalBg: getThemeColor("#fff", "#1E1E1E", "#121212"),
+    inputBg: getThemeColor("#F9F9F9", "#2C2C2E", "#1E1E1E"),
+    border: getThemeColor("#F0F0F0", "#333", "#222"),
+    chipBg: getThemeColor("#F5F5F5", "#2C2C2E", "#1E1E1E"),
+    chipBorder: getThemeColor("#EEE", "#333", "#222"),
     placeholder: isDark ? "#888" : "#999",
     actionOverlay: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.6)",
+    closeBtn: getThemeColor("#F5F5F5", "#333", "#222"),
+    imgPlaceholder: getThemeColor("#FFF0ED", "#2C2C2E", "#121212"),
+    imgBorder: getThemeColor("#FF6347", "#333", "#333"),
   };
 
   const pickImage = async (selectionType) => {
@@ -293,7 +300,7 @@ export default function Mypersonalrecipe() {
         }
       />
 
-      {/* 🦍 DARK MODE MODAL */}
+      {/*THEMED MODAL */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -312,10 +319,7 @@ export default function Mypersonalrecipe() {
             style={[styles.modalContent, { backgroundColor: theme.modalBg }]}
           >
             <View
-              style={[
-                styles.dragHandle,
-                { backgroundColor: isDark ? "#333" : "#E0E0E0" },
-              ]}
+              style={[styles.dragHandle, { backgroundColor: theme.border }]}
             />
 
             <View style={styles.modalHeader}>
@@ -324,10 +328,7 @@ export default function Mypersonalrecipe() {
               </Text>
               <TouchableOpacity
                 onPress={closeAndReset}
-                style={[
-                  styles.closeBtn,
-                  { backgroundColor: isDark ? "#333" : "#F5F5F5" },
-                ]}
+                style={[styles.closeBtn, { backgroundColor: theme.closeBtn }]}
               >
                 <Ionicons name="close" size={20} color={theme.text} />
               </TouchableOpacity>
@@ -341,8 +342,8 @@ export default function Mypersonalrecipe() {
                 style={[
                   styles.imagePlaceholder,
                   {
-                    backgroundColor: isDark ? "#2C2C2E" : "#FFF0ED",
-                    borderColor: isDark ? "#333" : "#FF6347",
+                    backgroundColor: theme.imgPlaceholder,
+                    borderColor: theme.imgBorder,
                   },
                 ]}
                 onPress={() => pickImage("recipe")}

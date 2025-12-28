@@ -45,21 +45,29 @@ The app connects to **TheMealDB API** to fetch global culinary data and uses a l
 TastyTabs/
 ├── app/                      # EXPO ROUTER CORE
 │   ├── (drawer)/             # Drawer Navigation Group
-│   │   ├── _layout.tsx       # Drawer config
+│   │   ├── _layout.jsx       # Drawer config
 │   │   ├── (tabs)/           # Tab Navigation (Nested in Drawer)
-│   │   │   ├── _layout.tsx   # Tab config
-│   │   │   ├── index.tsx     # Home Screen
-│   │   │   ├── search.tsx    # Search Screen
-│   │   │   └── vault.tsx     # CRUD / Favorites Screen
-│   │   └── settings.tsx      # Settings Screen
+│   │   │   ├── _layout.jsx   # Tab config
+│   │   │   ├── index.jsx     # Home Screen
+│   │   │   ├── search.jsx    # Search Screen
+│   │   │   └── vault.jsx       # Favorites Screen
+│   │   └── mypersonalrecipe.jsx # My Personal Recipe Screen
+│   │   └── settings.jsx      # Settings Screen
 │   ├── recipe/               # Stack Navigation Group
 │   │   └── [id].tsx          # Dynamic Recipe Detail Page
 │   └── _layout.tsx           # Root Layout (Providers)
-├── components/               # Atomic UI Components
-├── constants/                # Colors & API Keys
-├── hooks/                    # Custom CRUD and API hooks
-└── api/                 # API client (Axios/Fetch)
-    └── mealdetail.js         # Meal Detail API Client
-    └── listallmeals.js       # List All Meals API Client 
-    └── fetchcategory.js       # Fetch Category API Client
+├── Store/
+│   ├── Slices/                      # Store configuration
+│   │   ├── personalNotesSlice.js    # Personal Notes Slice
+│   │   ├── personalrecipeSlice.js   # Personal Recipe Slice
+│   │   ├── preferencesSlice.js      # Preferences Slice
+│   │   ├── recipeSlice.js           # Recipe Slice
+│   │   └── vaultSlice.js            # Vault Slice
+│   └── store.js                     # Store
+├── components/                      # Atomic UI Components
+    └── MealCard.jsx                 # Meal Card Component
+└── api/                             # API client (Axios/Fetch)
+    └── mealdetail.js                # Meal Detail API Client
+    └── listallmeals.js              # List All Meals API Client 
+    └── fetchcategory.js             # Fetch Category API Client
 ```

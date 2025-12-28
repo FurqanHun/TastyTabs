@@ -30,6 +30,7 @@ export default function RecipeDetail() {
   const dispatch = useDispatch();
 
   const isDark = useSelector((state) => state.preferences.darkMode);
+  const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
   const { width } = useWindowDimensions();
   const VIDEO_HEIGHT = width * (9 / 16);
@@ -68,20 +69,23 @@ export default function RecipeDetail() {
   const [note, setNote] = useState(personalNote);
   const [tempNote, setTempNote] = useState(personalNote);
 
-  //   DYNAMIC THEME COLORS
+  const getThemeColor = (light, dark, amoled) =>
+    isDark ? (isAmoled ? amoled : dark) : light;
+
   const theme = {
-    bg: isDark ? "#121212" : "#FFF",
-    cardBg: isDark ? "#1E1E1E" : "#fff",
+    bg: getThemeColor("#fff", "#121212", "#000000"),
+    cardBg: getThemeColor("#fff", "#1E1E1E", "#000000"),
     text: isDark ? "#fff" : "#333",
     subText: isDark ? "#aaa" : "#555",
-    border: isDark ? "#333" : "#F0F0F0",
-    tagBg: isDark ? "#333" : "#F0F0F0",
+    border: getThemeColor("#F0F0F0", "#333", "#222"),
+    tagBg: getThemeColor("#F0F0F0", "#333", "#222"),
     tagText: isDark ? "#ccc" : "#555",
-    ingBg: isDark ? "#2C2C2E" : "#FAFAFA",
-    noteBg: isDark ? "#252525" : "#FAFAFA",
-    modalBg: isDark ? "#1E1E1E" : "#FFF",
+    ingBg: getThemeColor("#FAFAFA", "#2C2C2E", "#121212"),
+    noteBg: getThemeColor("#FAFAFA", "#252525", "#121212"),
+    modalBg: getThemeColor("#fff", "#1E1E1E", "#121212"),
     inputColor: isDark ? "#fff" : "#333",
     iconBtnBg: isDark ? "rgba(30,30,30,0.8)" : "rgba(255,255,255,0.95)",
+    iconBtnBorder: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
     iconColor: isDark ? "#fff" : "#333",
   };
 
@@ -177,7 +181,15 @@ export default function RecipeDetail() {
               ? "light-content"
               : "dark-content"
         }
-        backgroundColor={playVideo ? "#000" : isDark ? "#121212" : "#fff"}
+        backgroundColor={
+          playVideo
+            ? "#000"
+            : isDark
+              ? isAmoled
+                ? "#000000"
+                : "#121212"
+              : "#fff"
+        }
       />
       <Stack.Screen options={{ headerShown: false }} />
 
@@ -498,7 +510,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 5,
+    // elevation: 5,
   },
   heroWrapper: { width: "100%", zIndex: 1 },
   heroImage: { width: "100%", height: "100%", resizeMode: "cover" },

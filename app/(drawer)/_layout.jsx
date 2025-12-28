@@ -18,20 +18,37 @@ function CustomVVIPHeader() {
   const navigation = useNavigation();
 
   const isDark = useSelector((state) => state.preferences.darkMode);
+  const isAmoled = useSelector((state) => state.preferences.amoledMode);
+
+  const getThemeColor = (light, dark, amoled) =>
+    isDark ? (isAmoled ? amoled : dark) : light;
 
   // Dynamic Styles
-  const bgStyle = { backgroundColor: isDark ? "#121212" : "#fff" };
+  const bgStyle = {
+    backgroundColor: getThemeColor("#fff", "#121212", "#000000"),
+  };
+
   const floatStyle = {
-    backgroundColor: isDark
-      ? "rgba(30,30,30,0.98)"
-      : "rgba(255, 255, 255, 0.98)",
-    borderColor: isDark ? "#333" : "rgba(255, 99, 71, 0.1)",
+    backgroundColor: getThemeColor(
+      "rgba(255, 255, 255, 0.98)", // Light
+      "rgba(30,30,30,0.98)", // Dark
+      "#000000", // Amoled (Pitch Black)
+    ),
+    borderColor: getThemeColor(
+      "rgba(255, 99, 71, 0.1)", // Light
+      "#333", // Dark
+      "#222", // Amoled
+    ),
   };
+
   const circleStyle = {
-    backgroundColor: isDark ? "#121212" : "#fff",
-    borderColor: isDark ? "#333" : "#fff5f4",
+    backgroundColor: getThemeColor("#fff", "#121212", "#000000"),
+    borderColor: getThemeColor("#fff5f4", "#333", "#222"),
   };
-  const btnStyle = { backgroundColor: isDark ? "#2c2c2e" : "#fff5f4" };
+
+  const btnStyle = {
+    backgroundColor: getThemeColor("#fff5f4", "#2c2c2e", "#121212"),
+  };
 
   return (
     <View style={[styles.headerWrapper, bgStyle]}>
@@ -65,11 +82,22 @@ function CustomDrawerContent(props) {
   const activeRouteName = state.routes[state.index].name;
 
   const isDark = useSelector((state) => state.preferences.darkMode);
+  const isAmoled = useSelector((state) => state.preferences.amoledMode);
+
+  const getThemeColor = (light, dark, amoled) =>
+    isDark ? (isAmoled ? amoled : dark) : light;
 
   // Dynamic Styles
-  const containerStyle = { backgroundColor: isDark ? "#121212" : "#fff" };
-  // const textStyle = { color: isDark ? "#eee" : "#333" };
-  const bottomSectionStyle = { borderTopColor: isDark ? "#333" : "#f4f4f4" };
+  const containerStyle = {
+    backgroundColor: getThemeColor("#fff", "#121212", "#000000"),
+  };
+
+  const bottomSectionStyle = {
+    borderTopColor: getThemeColor("#f4f4f4", "#333", "#222"),
+  };
+
+  const textIconColor = isDark ? "#eee" : "#333";
+  const iconInactiveColor = isDark ? "#ccc" : "#333";
 
   return (
     <View style={[{ flex: 1 }, containerStyle]}>
@@ -114,22 +142,21 @@ function CustomDrawerContent(props) {
               onPress={() => navigation.navigate(route.name)}
             >
               <View style={styles.itemContent}>
-                {/* 🦍 Icon Color Logic: White if focused, Theme color if not */}
                 {drawerIcon &&
                   drawerIcon({
-                    color: focused ? "#fff" : isDark ? "#ccc" : "#333",
+                    color: focused ? "#fff" : iconInactiveColor,
                     size: 22,
                   })}
 
                 <Text
                   style={[
                     styles.itemLabel,
-                    { color: focused ? "#fff" : isDark ? "#eee" : "#333" },
+                    { color: focused ? "#fff" : textIconColor },
                   ]}
                 >
                   {typeof drawerLabel === "function"
                     ? drawerLabel({
-                        color: focused ? "#fff" : isDark ? "#eee" : "#333",
+                        color: focused ? "#fff" : textIconColor,
                       })
                     : drawerLabel}
                 </Text>
@@ -153,11 +180,7 @@ function CustomDrawerContent(props) {
               name="settings-outline"
               size={22}
               color={
-                activeRouteName === "settings"
-                  ? "#fff"
-                  : isDark
-                    ? "#ccc"
-                    : "#333"
+                activeRouteName === "settings" ? "#fff" : iconInactiveColor
               }
             />
             <Text
@@ -165,11 +188,7 @@ function CustomDrawerContent(props) {
                 styles.itemLabel,
                 {
                   color:
-                    activeRouteName === "settings"
-                      ? "#fff"
-                      : isDark
-                        ? "#eee"
-                        : "#333",
+                    activeRouteName === "settings" ? "#fff" : textIconColor,
                 },
               ]}
             >
@@ -198,6 +217,9 @@ export default function DrawerLayout() {
           borderTopRightRadius: 30,
           borderBottomRightRadius: 30,
           overflow: "hidden",
+          // Background color handled by content,
+          //but we set this to transparent to avoid white corners
+          backgroundColor: "transparent",
         },
       }}
     >

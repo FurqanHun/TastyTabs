@@ -20,6 +20,7 @@ const MealCardComponent = ({ meal, isHero }) => {
   const dispatch = useDispatch();
 
   const isDark = useSelector((state) => state.preferences.darkMode);
+  const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
   // --- Vault Logic ---
   const isSaved = useSelector((state) => {
@@ -45,8 +46,9 @@ const MealCardComponent = ({ meal, isHero }) => {
 
   const scale = useRef(new Animated.Value(1)).current;
 
-  // DYNAMIC CARD BACKGROUND (Prevents white flash on load)
-  const cardBgStyle = { backgroundColor: isDark ? "#1E1E1E" : "#fff" };
+  const cardBgStyle = {
+    backgroundColor: isDark ? (isAmoled ? "#000000" : "#1E1E1E") : "#fff",
+  };
 
   const animateIn = () => {
     if (Platform.OS === "web") {

@@ -12,11 +12,12 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
 
   const isDark = useSelector((state) => state.preferences.darkMode);
+  const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
   const theme = {
-    bg: isDark ? "#121212" : "white",
+    bg: isDark ? (isAmoled ? "#000000" : "#121212") : "white",
     inactive: isDark ? "#888" : "gray",
-    borderTop: isDark ? "#333" : "#eee", //separate the tabs from content
+    borderTop: isDark ? (isAmoled ? "#222" : "#333") : "#eee",
   };
 
   return (

@@ -14,6 +14,7 @@ const VaultScreen = () => {
   const { width } = useWindowDimensions();
 
   const isDark = useSelector((state) => state.preferences.darkMode);
+  const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
   const numColumns = width > 1024 ? 3 : width > 768 ? 2 : 1;
 
@@ -24,12 +25,15 @@ const VaultScreen = () => {
     return [];
   });
 
-  // 🦍 DYNAMIC STYLES
+  const bg = isDark ? (isAmoled ? "#000000" : "#121212") : "#fff";
   const theme = {
-    container: { backgroundColor: isDark ? "#121212" : "#fff" },
+    container: { backgroundColor: bg },
     text: { color: isDark ? "#fff" : "#333" },
     subText: { color: isDark ? "#aaa" : "#666" },
-    badgeBg: { backgroundColor: isDark ? "#333" : "#F0F0F0" },
+    // Badge BG: Dark Grey in Dark Mode, slightly darker in Amoled
+    badgeBg: {
+      backgroundColor: isDark ? (isAmoled ? "#222" : "#333") : "#F0F0F0",
+    },
     badgeText: { color: isDark ? "#ccc" : "#666" },
     iconColor: isDark ? "#555" : "#ddd",
   };
@@ -133,7 +137,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: "600",
-    // Color handled dynamically
   },
   emptySubText: {
     fontSize: 14,

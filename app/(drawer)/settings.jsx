@@ -8,22 +8,23 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { toggleTheme } from "../../store/Slices/preferencesSlice";
+// 🦍 IMPORT NEW ACTION
+import { toggleTheme, toggleAmoled } from "../../store/Slices/preferencesSlice";
 
 export default function SettingsScreen() {
   const dispatch = useDispatch();
 
   const isDark = useSelector((state) => state.preferences.darkMode);
+  const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
-  //DYNAMIC STYLES
+  const BG_COLOR = isDark ? (isAmoled ? "#000000" : "#121212") : "#F8F9FA";
+  const CARD_COLOR = isDark ? (isAmoled ? "#121212" : "#1C1C1E") : "#FFFFFF";
+  const TEXT_COLOR = isDark ? "#FFFFFF" : "#1A1A1A";
+
   const dynamicStyles = {
-    // Container: Dark Grey vs Light Grey
-    container: { backgroundColor: isDark ? "#121212" : "#F8F9FA" },
-    // Text: White vs Black
-    text: { color: isDark ? "#FFFFFF" : "#1A1A1A" },
-    // Cards: Lighter Grey vs White
-    sectionBg: { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF" },
-    // Subtext: Light Grey vs Dark Grey
+    container: { backgroundColor: BG_COLOR },
+    text: { color: TEXT_COLOR },
+    sectionBg: { backgroundColor: CARD_COLOR },
     subText: { color: isDark ? "#AAAAAA" : "#666666" },
   };
 
@@ -46,6 +47,7 @@ export default function SettingsScreen() {
       <View style={[styles.section, dynamicStyles.sectionBg]}>
         <Text style={styles.sectionLabel}>Appearance</Text>
 
+        {/* DARK MODE TOGGLE */}
         <View style={styles.row}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Ionicons
@@ -55,8 +57,6 @@ export default function SettingsScreen() {
             />
             <Text style={[styles.rowText, dynamicStyles.text]}>Dark Mode</Text>
           </View>
-
-          {/*THE TOGGLE */}
           <Switch
             value={isDark}
             onValueChange={() => dispatch(toggleTheme())}
@@ -64,15 +64,54 @@ export default function SettingsScreen() {
             thumbColor={isDark ? "#fff" : "#f4f3f4"}
           />
         </View>
+
+        {/*AMOLED TOGGLE (Only visible if Dark Mode is ON) */}
+        {isDark && (
+          <View
+            style={[
+              styles.row,
+              {
+                borderTopWidth: 1,
+                borderTopColor: isAmoled ? "#333" : "#2c2c2e",
+                marginTop: 10,
+                paddingTop: 10,
+              },
+            ]}
+          >
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+            >
+              <Ionicons
+                name="contrast"
+                size={22}
+                color={dynamicStyles.text.color}
+              />
+              <View>
+                <Text style={[styles.rowText, dynamicStyles.text]}>
+                  AMOLED Mode
+                </Text>
+                <Text style={{ fontSize: 12, color: "#666" }}>
+                  Pitch black background
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={isAmoled}
+              onValueChange={() => dispatch(toggleAmoled())}
+              trackColor={{ true: "#FF6347", false: "#767577" }}
+              thumbColor={isAmoled ? "#fff" : "#f4f3f4"}
+            />
+          </View>
+        )}
       </View>
 
       {/* ABOUT SECTION */}
       <View style={styles.aboutBox}>
         <Ionicons name="fast-food" size={40} color="#FF6347" />
         <Text style={[styles.appName, dynamicStyles.text]}>TastyTabs</Text>
-        <Text style={styles.version}>v1.0.0</Text>
+        <Text style={styles.version}>v1.0.0 • Monke Edition 🦍</Text>
         <Text style={[styles.credits, dynamicStyles.subText]}>
-          Developed by FAABS (without A).
+          Developed by Furqan & Co.
         </Text>
       </View>
     </ScrollView>
@@ -88,7 +127,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   headerTitle: { fontSize: 30, fontWeight: "800" },
-
   section: {
     marginTop: 10,
     marginHorizontal: 16,
@@ -107,7 +145,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textTransform: "uppercase",
   },
-
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -115,7 +152,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   rowText: { fontSize: 16, fontWeight: "500" },
-
   aboutBox: {
     alignItems: "center",
     marginTop: 40,

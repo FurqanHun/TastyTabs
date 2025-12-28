@@ -16,6 +16,7 @@ import { MealCard } from "../../../components/MealCard";
 
 export default function Index() {
   const isDark = useSelector((state) => state.preferences.darkMode);
+  const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
   const {
     data: rawData,
@@ -36,7 +37,8 @@ export default function Index() {
     : [];
 
   //    DYNAMIC STYLES
-  const containerBg = { backgroundColor: isDark ? "#121212" : "#fff" };
+  const bg = isDark ? (isAmoled ? "#000000" : "#121212") : "#fff";
+  const containerBg = { backgroundColor: bg };
   const textColor = { color: isDark ? "#fff" : "#1a1a1a" };
 
   if (isLoading) {
