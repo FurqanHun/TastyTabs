@@ -107,7 +107,6 @@ export default function Mypersonalrecipe() {
     bg: getThemeColor("#fff", "#121212", "#000000"), // Main BG
     text: isDark ? "#fff" : "#1a1a1a",
     subText: isDark ? "#aaa" : "#666",
-    // Modal: Dark Grey in DarkMode, Slightly lighter Grey in Amoled to contrast against Black BG
     modalBg: getThemeColor("#fff", "#1E1E1E", "#121212"),
     inputBg: getThemeColor("#F9F9F9", "#2C2C2E", "#1E1E1E"),
     border: getThemeColor("#F0F0F0", "#333", "#222"),
@@ -300,7 +299,6 @@ export default function Mypersonalrecipe() {
         }
       />
 
-      {/*THEMED MODAL */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -358,10 +356,57 @@ export default function Mypersonalrecipe() {
                 ) : (
                   <View style={styles.placeholderInner}>
                     <Ionicons name="camera" size={32} color="#FF6347" />
-                    <Text style={styles.placeholderText}>Add Cover Photo</Text>
+                    <Text style={styles.placeholderText}>Tap to Upload</Text>
                   </View>
                 )}
               </TouchableOpacity>
+
+              {/* 🦍 FIX: ADDED URL INPUT WITH CLEAR BUTTON */}
+              <View
+                style={[
+                  styles.ytInputRow,
+                  {
+                    backgroundColor: theme.inputBg,
+                    borderColor: theme.border,
+                    marginBottom: 20,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="link"
+                  size={20}
+                  color={isDark ? "#aaa" : "#666"}
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      flex: 1,
+                      marginBottom: 0,
+                      backgroundColor: "transparent",
+                      borderWidth: 0,
+                      color: theme.text,
+                    },
+                  ]}
+                  placeholder="Or paste Image URL..."
+                  // 🦍 Logic: Show text only if it's NOT a local file. Allows typing.
+                  value={
+                    !recipeImage?.startsWith("file://") ? recipeImage || "" : ""
+                  }
+                  onChangeText={setRecipeImage}
+                  placeholderTextColor={theme.placeholder}
+                />
+                {/* 🦍 Clear Button Logic: Show if it's a URL/Text (not a file) and not empty */}
+                {recipeImage && !recipeImage.startsWith("file://") && (
+                  <TouchableOpacity onPress={() => setRecipeImage(null)}>
+                    <Ionicons
+                      name="close-circle"
+                      size={20}
+                      color={theme.subText}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
 
               <Text style={[styles.label, { color: theme.text }]}>Title</Text>
               <TextInput
@@ -638,7 +683,6 @@ export default function Mypersonalrecipe() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
   listHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -666,7 +710,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-
   actionOverlay: {
     position: "absolute",
     top: 15,
@@ -685,7 +728,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.3)",
   },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -731,7 +773,6 @@ const styles = StyleSheet.create({
     padding: 5,
     borderRadius: 20,
   },
-
   imagePlaceholder: {
     width: "100%",
     height: 200,
@@ -746,7 +787,6 @@ const styles = StyleSheet.create({
   placeholderInner: { alignItems: "center" },
   placeholderText: { color: "#FF6347", fontWeight: "600", marginTop: 8 },
   pickedImg: { width: "100%", height: "100%" },
-
   label: {
     fontSize: 14,
     fontWeight: "700",
@@ -766,7 +806,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     borderWidth: 1,
   },
-
   chipContainer: { flexDirection: "row", marginBottom: 20 },
   chip: {
     paddingHorizontal: 16,
@@ -778,7 +817,6 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: "#FF6347", borderColor: "#FF6347" },
   chipText: { fontSize: 14, fontWeight: "600" },
   chipTextActive: { color: "#fff" },
-
   ytInputRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -788,7 +826,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: 55,
   },
-
   ingredientBoxOuter: {
     padding: 12,
     borderRadius: 16,
@@ -812,7 +849,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   ingListPreview: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   ingItem: {
     flexDirection: "row",
@@ -829,7 +865,6 @@ const styles = StyleSheet.create({
   },
   miniIngImg: { width: 20, height: 20, borderRadius: 10, marginRight: 6 },
   ingText: { fontSize: 13, fontWeight: "600", marginRight: 8 },
-
   saveBtn: {
     backgroundColor: "#FF6347",
     paddingVertical: 18,
@@ -843,7 +878,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   saveBtnText: { color: "#fff", fontSize: 18, fontWeight: "800" },
-
   emptyContainer: { alignItems: "center", marginTop: 80, padding: 20 },
   emptyText: { marginTop: 15, fontSize: 18, fontWeight: "700" },
   emptySubText: { marginTop: 5, fontSize: 14 },
