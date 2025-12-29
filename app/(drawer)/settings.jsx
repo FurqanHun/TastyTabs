@@ -1,135 +1,6 @@
-// import { Ionicons } from "@expo/vector-icons";
-// import {
-//   Platform,
-//   ScrollView,
-//   StyleSheet,
-//   Switch,
-//   Text,
-//   View,
-// } from "react-native";
-// import { useDispatch, useSelector } from "react-redux";
-// import { toggleTheme } from "../../store/Slices/preferencesSlice";
-
-// export default function SettingsScreen() {
-//   const dispatch = useDispatch();
-
-//   const isDark = useSelector((state) => state.preferences.darkMode);
-
-//   //DYNAMIC STYLES
-//   const dynamicStyles = {
-//     // Container: Dark Grey vs Light Grey
-//     container: { backgroundColor: isDark ? "#121212" : "#F8F9FA" },
-//     // Text: White vs Black
-//     text: { color: isDark ? "#FFFFFF" : "#1A1A1A" },
-//     // Cards: Lighter Grey vs White
-//     sectionBg: { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF" },
-//     // Subtext: Light Grey vs Dark Grey
-//     subText: { color: isDark ? "#AAAAAA" : "#666666" },
-//   };
-
-//   return (
-//     <ScrollView
-//       style={[styles.container, dynamicStyles.container]}
-//       contentContainerStyle={{ paddingBottom: 50 }}
-//     >
-//       {/* HEADER */}
-//       <View
-//         style={[
-//           styles.header,
-//           { backgroundColor: dynamicStyles.container.backgroundColor },
-//         ]}
-//       >
-//         <Text style={[styles.headerTitle, dynamicStyles.text]}>Settings</Text>
-//       </View>
-
-//       {/* APPEARANCE SECTION */}
-//       <View style={[styles.section, dynamicStyles.sectionBg]}>
-//         <Text style={styles.sectionLabel}>Appearance</Text>
-
-//         <View style={styles.row}>
-//           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-//             <Ionicons
-//               name={isDark ? "moon" : "moon-outline"}
-//               size={22}
-//               color={dynamicStyles.text.color}
-//             />
-//             <Text style={[styles.rowText, dynamicStyles.text]}>Dark Mode</Text>
-//           </View>
-
-//           {/*THE TOGGLE */}
-//           <Switch
-//             value={isDark}
-//             onValueChange={() => dispatch(toggleTheme())}
-//             trackColor={{ true: "#FF6347", false: "#767577" }}
-//             thumbColor={isDark ? "#fff" : "#f4f3f4"}
-//           />
-//         </View>
-//       </View>
-
-//       {/* ABOUT SECTION */}
-//       <View style={styles.aboutBox}>
-//         <Ionicons name="fast-food" size={40} color="#FF6347" />
-//         <Text style={[styles.appName, dynamicStyles.text]}>TastyTabs</Text>
-//         <Text style={styles.version}>v1.0.0</Text>
-//         <Text style={[styles.credits, dynamicStyles.subText]}>
-//           Developed by FAABS (without A).
-//         </Text>
-//       </View>
-//     </ScrollView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: { flex: 1 },
-//   header: {
-//     paddingHorizontal: 20,
-//     paddingTop: Platform.OS === "ios" ? 60 : 40,
-//     paddingBottom: 15,
-//     marginBottom: 10,
-//   },
-//   headerTitle: { fontSize: 30, fontWeight: "800" },
-
-//   section: {
-//     marginTop: 10,
-//     marginHorizontal: 16,
-//     borderRadius: 16,
-//     padding: 16,
-//     elevation: 2,
-//     shadowColor: "#000",
-//     shadowOpacity: 0.05,
-//     shadowRadius: 10,
-//     shadowOffset: { width: 0, height: 2 },
-//   },
-//   sectionLabel: {
-//     fontSize: 14,
-//     fontWeight: "700",
-//     color: "#888",
-//     marginBottom: 10,
-//     textTransform: "uppercase",
-//   },
-
-//   row: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     alignItems: "center",
-//     paddingVertical: 12,
-//   },
-//   rowText: { fontSize: 16, fontWeight: "500" },
-
-//   aboutBox: {
-//     alignItems: "center",
-//     marginTop: 40,
-//     paddingBottom: 20,
-//   },
-//   appName: { fontSize: 24, fontWeight: "800", marginTop: 10 },
-//   version: { fontSize: 14, color: "#888", marginTop: 4 },
-//   credits: { fontSize: 14, marginTop: 4 },
-// });
-
-
-
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import React from "react";
 import {
   Alert,
   Platform,
@@ -141,28 +12,27 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { toggleTheme } from "../../store/Slices/preferencesSlice";
+import { toggleAmoled, toggleTheme } from "../../store/Slices/preferencesSlice";
 
 export default function SettingsScreen() {
   const dispatch = useDispatch();
+
+  // Redux States
   const isDark = useSelector((state) => state.preferences.darkMode);
   const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
+  // Dynamic Colors
   const BG_COLOR = isDark ? (isAmoled ? "#000000" : "#121212") : "#F8F9FA";
   const CARD_COLOR = isDark ? (isAmoled ? "#121212" : "#1C1C1E") : "#FFFFFF";
   const TEXT_COLOR = isDark ? "#FFFFFF" : "#1A1A1A";
+  const BORDER_COLOR = isDark ? "#2C2C2E" : "#EEEEEE";
 
-  //DYNAMIC STYLES
   const dynamicStyles = {
-    // Container: Dark Grey vs Light Grey
-    container: { backgroundColor: isDark ? "#121212" : "#F8F9FA" },
-    // Text: White vs Black
-    text: { color: isDark ? "#FFFFFF" : "#1A1A1A" },
-    // Cards: Lighter Grey vs White
-    sectionBg: { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF" },
-    // Subtext: Light Grey vs Dark Grey
+    container: { backgroundColor: BG_COLOR },
+    text: { color: TEXT_COLOR },
+    sectionBg: { backgroundColor: CARD_COLOR },
     subText: { color: isDark ? "#AAAAAA" : "#666666" },
-    border: { borderColor: isDark ? "#333" : "#F0F0F0" }
+    border: { borderBottomColor: BORDER_COLOR }
   };
 
   // --- HANDLERS ---
@@ -179,34 +49,34 @@ export default function SettingsScreen() {
         { 
           text: "Delete", 
           style: "destructive", 
-          onPress: () => {
-             // Yahan aap dispatch(clearVault()) waghaira call karenge
-             console.log(`${type} deleted`);
-          } 
+          onPress: () => console.log(`${type} deleted`) 
         },
       ]
     );
   };
 
   // Helper component for Setting Rows
-  const SettingRow = ({ icon, label, onPress, color, isSwitch, value, onValueChange }) => (
+  const SettingRow = ({ icon, label, subLabel, onPress, color, isSwitch, value, onValueChange, showBorder = true }) => (
     <TouchableOpacity 
-      style={[styles.row, dynamicStyles.border]} 
+      style={[styles.row, showBorder && { borderBottomWidth: 1, borderBottomColor: BORDER_COLOR }]} 
       onPress={onPress} 
       disabled={isSwitch}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
         <View style={[styles.iconContainer, { backgroundColor: isDark ? "#2C2C2E" : "#FFF5F4" }]}>
           <Ionicons name={icon} size={20} color={color || "#FF6347"} />
         </View>
-        <Text style={[styles.rowText, dynamicStyles.text]}>{label}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.rowText, dynamicStyles.text]}>{label}</Text>
+          {subLabel && <Text style={[styles.subText, { fontSize: 12 }]}>{subLabel}</Text>}
+        </View>
       </View>
       {isSwitch ? (
         <Switch
           value={value}
           onValueChange={onValueChange}
           trackColor={{ true: "#FF6347", false: "#767577" }}
-          thumbColor={isDark ? "#fff" : "#f4f3f4"}
+          thumbColor={Platform.OS === 'ios' ? undefined : (value ? "#FF6347" : "#f4f3f4")}
         />
       ) : (
         <Ionicons name="chevron-forward" size={18} color="#CCC" />
@@ -215,7 +85,10 @@ export default function SettingsScreen() {
   );
 
   return (
-    <ScrollView style={[styles.container, dynamicStyles.container]} contentContainerStyle={{ paddingBottom: 50 }}>
+    <ScrollView
+      style={[styles.container, dynamicStyles.container]}
+      contentContainerStyle={{ paddingBottom: 50 }}
+    >
       {/* HEADER */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, dynamicStyles.text]}>Settings</Text>
@@ -224,35 +97,65 @@ export default function SettingsScreen() {
       {/* 1. APPEARANCE SECTION */}
       <View style={[styles.section, dynamicStyles.sectionBg]}>
         <Text style={styles.sectionLabel}>Appearance</Text>
+        
+        <SettingRow 
+          icon={isDark ? "moon" : "moon-outline"} 
+          label="Dark Mode" 
+          isSwitch 
+          value={isDark} 
+          onValueChange={() => dispatch(toggleTheme())}
+          showBorder={isDark} 
+        />
 
-        <View style={styles.row}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Ionicons
-              name={isDark ? "moon" : "moon-outline"}
-              size={22}
-              color={dynamicStyles.text.color}
-            />
-            <Text style={[styles.rowText, dynamicStyles.text]}>Dark Mode</Text>
-          </View>
-
-          {/*THE TOGGLE */}
-          <Switch
-            value={isDark}
-            onValueChange={() => dispatch(toggleTheme())}
-            trackColor={{ true: "#FF6347", false: "#767577" }}
-            thumbColor={isDark ? "#fff" : "#f4f3f4"}
+        {isDark && (
+          <SettingRow 
+            icon="contrast" 
+            label="AMOLED Mode" 
+            subLabel="Pitch black background"
+            isSwitch 
+            value={isAmoled} 
+            onValueChange={() => dispatch(toggleAmoled())}
+            showBorder={false}
           />
-        </View>
+        )}
       </View>
 
-      {/* APP LOGO AT BOTTOM */}
+      {/* 2. BACKUP & RESTORE SECTION */}
+      <View style={[styles.section, dynamicStyles.sectionBg]}>
+        <Text style={styles.sectionLabel}>Backup & Restore</Text>
+        <SettingRow icon="cloud-upload-outline" label="Backup All Data" onPress={() => handleBackup("Full Data")} />
+        <SettingRow icon="receipt-outline" label="Backup Recipes Only" onPress={() => handleBackup("Recipes")} />
+        <SettingRow icon="download-outline" label="Restore from Backup" onPress={() => Alert.alert("Restore", "Latest backup restore kar diya gaya hai.")} showBorder={false} />
+      </View>
+
+      {/* 3. DATA MANAGEMENT SECTION */}
+      <View style={[styles.section, dynamicStyles.sectionBg]}>
+        <Text style={styles.sectionLabel}>Data Management</Text>
+        <SettingRow icon="heart-dislike-outline" label="Clear Favourites" color="#FF3B30" onPress={() => handleDeleteData("Vault")} />
+        <SettingRow icon="document-text-outline" label="Clear Personal Notes" color="#FF3B30" onPress={() => handleDeleteData("Notes")} />
+        <SettingRow icon="trash-outline" label="Delete All Personal Recipes" color="#FF3B30" onPress={() => handleDeleteData("Personal Recipes")} showBorder={false} />
+      </View>
+
+      {/* 4. ABOUT SECTION */}
+      <View style={[styles.section, dynamicStyles.sectionBg]}>
+        <Text style={styles.sectionLabel}>About</Text>
+        <View style={styles.aboutRow}>
+          <Text style={[styles.rowText, dynamicStyles.text]}>App Version</Text>
+          <Text style={dynamicStyles.subText}>1.0.0</Text>
+        </View>
+        <View style={styles.aboutRow}>
+          <Text style={[styles.rowText, dynamicStyles.text]}>Developer</Text>
+          <Text style={dynamicStyles.subText}>FAABS (without A)</Text>
+        </View>
+        <TouchableOpacity style={[styles.aboutRow, { borderBottomWidth: 0 }]} onPress={() => router.push("/privacypolicy")}>
+          <Text style={[styles.rowText, dynamicStyles.text]}>Privacy Policy</Text>
+          <Ionicons name="open-outline" size={16} color="#888" />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.aboutBox}>
         <Ionicons name="fast-food" size={40} color="#FF6347" />
         <Text style={[styles.appName, dynamicStyles.text]}>TastyTabs</Text>
-        <Text style={styles.version}>v1.0.0</Text>
-        <Text style={[styles.credits, dynamicStyles.subText]}>
-          Developed by FAABS (without A).
-        </Text>
       </View>
     </ScrollView>
   );
@@ -265,24 +168,26 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "ios" ? 60 : 40,
     paddingBottom: 15,
   },
-  headerTitle: { fontSize: 30, fontWeight: "800" },
-
+  headerTitle: { fontSize: 32, fontWeight: "800" },
   section: {
     marginTop: 20,
     marginHorizontal: 16,
     borderRadius: 20,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    // Shadow for Light Mode
     elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
   sectionLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
-    color: "#FF6347",
-    marginBottom: 15,
+    color: "#888",
+    marginTop: 10,
+    marginBottom: 5,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
@@ -291,7 +196,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 14,
-    borderBottomWidth: 0.5,
   },
   iconContainer: {
     width: 36,
@@ -300,19 +204,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  rowText: { fontSize: 16, fontWeight: "600" },
+  rowText: { fontSize: 16, fontWeight: "500" },
+  subText: { fontSize: 14, color: "#666" },
   aboutRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'transparent' // Default
   },
-  rowText: { fontSize: 16, fontWeight: "500" },
-
   aboutBox: {
     alignItems: "center",
-    marginTop: 30,
-    paddingBottom: 20,
+    marginTop: 40,
+    paddingBottom: 40,
   },
-  appName: { fontSize: 20, fontWeight: "800", marginTop: 10, letterSpacing: 1 },
+  appName: { fontSize: 24, fontWeight: "800", marginTop: 10 },
 });
