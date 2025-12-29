@@ -1,6 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
+import { Directory } from "expo-file-system";
+import { File as ExpoFile } from "expo-file-system/next";
+
 import { useState } from "react";
 import {
   Alert,
@@ -71,7 +74,6 @@ export default function Mypersonalrecipe() {
 
   const isDark = useSelector((state) => state.preferences.darkMode);
   const isAmoled = useSelector((state) => state.preferences.amoledMode);
-
   const myRecipes = useSelector((state) => state.personalrecipes.allmyrecipes);
 
   const numColumns = width > 900 ? 3 : width > 600 ? 2 : 1;
@@ -104,10 +106,9 @@ export default function Mypersonalrecipe() {
     isDark ? (isAmoled ? amoled : dark) : light;
 
   const theme = {
-    bg: getThemeColor("#fff", "#121212", "#000000"), // Main BG
+    bg: getThemeColor("#fff", "#121212", "#000000"),
     text: isDark ? "#fff" : "#1a1a1a",
     subText: isDark ? "#aaa" : "#666",
-    // Modal: Dark Grey in DarkMode, Slightly lighter Grey in Amoled to contrast against Black BG
     modalBg: getThemeColor("#fff", "#1E1E1E", "#121212"),
     inputBg: getThemeColor("#F9F9F9", "#2C2C2E", "#1E1E1E"),
     border: getThemeColor("#F0F0F0", "#333", "#222"),
@@ -120,6 +121,32 @@ export default function Mypersonalrecipe() {
     imgBorder: getThemeColor("#FF6347", "#333", "#333"),
   };
 
+  const saveToLibrary = async (uri) => {
+    if (Platform.OS === "web") return uri;
+
+    try {
+      const file = new ExpoFile(uri);
+
+      const filename = uri.split("/").pop();
+
+      const dir = Directory.documentDirectory;
+      // console.log("Document dir:", dir);
+
+      if (!dir) {
+        // console.log("No document directory found");
+        return uri;
+      }
+
+      const destination = dir + filename;
+
+      file.copy(destination);
+
+      return destination;
+    } catch (_) {
+      // console.log("Error saving image:", error);
+      return uri;
+    }
+  };
   const pickImage = async (selectionType) => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
@@ -127,9 +154,12 @@ export default function Mypersonalrecipe() {
       aspect: [4, 3],
       quality: 0.5,
     });
+
     if (!result.canceled) {
-      if (selectionType === "recipe") setRecipeImage(result.assets[0].uri);
-      else setIngredientImage(result.assets[0].uri);
+      const savedUri = await saveToLibrary(result.assets[0].uri);
+
+      if (selectionType === "recipe") setRecipeImage(savedUri);
+      else setIngredientImage(savedUri);
     }
   };
 
@@ -300,7 +330,6 @@ export default function Mypersonalrecipe() {
         }
       />
 
-      {/*THEMED MODAL */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -638,7 +667,6 @@ export default function Mypersonalrecipe() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
   listHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -666,7 +694,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-
   actionOverlay: {
     position: "absolute",
     top: 15,
@@ -685,7 +712,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.3)",
   },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -731,7 +757,6 @@ const styles = StyleSheet.create({
     padding: 5,
     borderRadius: 20,
   },
-
   imagePlaceholder: {
     width: "100%",
     height: 200,
@@ -746,7 +771,6 @@ const styles = StyleSheet.create({
   placeholderInner: { alignItems: "center" },
   placeholderText: { color: "#FF6347", fontWeight: "600", marginTop: 8 },
   pickedImg: { width: "100%", height: "100%" },
-
   label: {
     fontSize: 14,
     fontWeight: "700",
@@ -766,7 +790,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     borderWidth: 1,
   },
-
   chipContainer: { flexDirection: "row", marginBottom: 20 },
   chip: {
     paddingHorizontal: 16,
@@ -778,7 +801,6 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: "#FF6347", borderColor: "#FF6347" },
   chipText: { fontSize: 14, fontWeight: "600" },
   chipTextActive: { color: "#fff" },
-
   ytInputRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -788,7 +810,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: 55,
   },
-
   ingredientBoxOuter: {
     padding: 12,
     borderRadius: 16,
@@ -812,7 +833,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   ingListPreview: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   ingItem: {
     flexDirection: "row",
@@ -829,7 +849,6 @@ const styles = StyleSheet.create({
   },
   miniIngImg: { width: 20, height: 20, borderRadius: 10, marginRight: 6 },
   ingText: { fontSize: 13, fontWeight: "600", marginRight: 8 },
-
   saveBtn: {
     backgroundColor: "#FF6347",
     paddingVertical: 18,
@@ -843,7 +862,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   saveBtnText: { color: "#fff", fontSize: 18, fontWeight: "800" },
-
   emptyContainer: { alignItems: "center", marginTop: 80, padding: 20 },
   emptyText: { marginTop: 15, fontSize: 18, fontWeight: "700" },
   emptySubText: { marginTop: 5, fontSize: 14 },
