@@ -17,8 +17,12 @@ const personalNotesSlice = createSlice({
     clearNote: (state, action) => {
       delete state.notes[action.payload];
     },
+    clearAllNotes: (state) => {
+      state.notes = {};
+    },
   },
 });
 
-export const { saveNote, clearNote } = personalNotesSlice.actions;
+export const { saveNote, clearNote, clearAllNotes } =
+  personalNotesSlice.actions;
 export default personalNotesSlice.reducer;

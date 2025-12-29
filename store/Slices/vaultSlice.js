@@ -6,29 +6,6 @@ const vaultSlice = createSlice({
     items: [],
   },
   reducers: {
-    // addToVault: (state, action) => {
-    //   const meal = action.payload;
-
-    //   if (!state.items) {
-    //     state.items = [];
-    //   }
-
-    //   const exists = state.items.find((item) => item.idMeal === meal.idMeal);
-
-    //   if (!exists) {
-    //     state.items.push(meal);
-    //     state.items.sort((a, b) => a.strMeal.localeCompare(b.strMeal));
-    //   }
-    // },
-    // removeFromVault: (state, action) => {
-    //   if (state.items) {
-    //     state.items = state.items.filter(
-    //       (item) => item.idMeal !== action.payload,
-    //     );
-    //   } else {
-    //     return { items: [] };
-    //   }
-    // },
     toggleVaultItem: (state, action) => {
       const meal = action.payload;
       if (!state.items) state.items = [];
@@ -44,8 +21,11 @@ const vaultSlice = createSlice({
         state.items.sort((a, b) => a.strMeal.localeCompare(b.strMeal));
       }
     },
+    clearVault: (state) => {
+      state.items = [];
+    },
   },
 });
 
-export const { toggleVaultItem } = vaultSlice.actions;
+export const { toggleVaultItem, clearVault } = vaultSlice.actions;
 export default vaultSlice.reducer;

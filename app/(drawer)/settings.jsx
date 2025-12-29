@@ -6,6 +6,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -16,12 +17,20 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { toggleAmoled, toggleTheme } from "../../store/Slices/preferencesSlice";
 
+import { clearAllNotes } from "../../store/Slices/personalNotesSlice";
+import { clearAllPersonalRecipes } from "../../store/Slices/personalrecipesSlice";
+import { clearVault } from "../../store/Slices/vaultSlice";
+
 export default function SettingsScreen() {
   const dispatch = useDispatch();
 
   // Redux States
   const isDark = useSelector((state) => state.preferences.darkMode);
   const isAmoled = useSelector((state) => state.preferences.amoledMode);
+
+  const allRecipes = useSelector((state) => state.personalrecipes.allmyrecipes);
+  const allNotes = useSelector((state) => state.personalNotes.notes);
+  const allVault = useSelector((state) => state.vault.items);
 
   const getThemeColor = (light, dark, amoled) =>
     isDark ? (isAmoled ? amoled : dark) : light;
@@ -67,7 +76,7 @@ export default function SettingsScreen() {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const executeAction = () => {
+  const executeAction = async () => {
     const selectedKeys = Object.keys(selection).filter((k) => selection[k]);
 
     if (selectedKeys.length === 0) {
@@ -79,18 +88,35 @@ export default function SettingsScreen() {
       .join(", ");
 
     if (actionType === "BACKUP") {
-      console.log(`Backing up: ${itemsText}`);
-      Alert.alert("Backup Successful", `Saved: ${itemsText}`);
+      // 🦍 ACTUAL BACKUP LOGIC (Export JSON)
+      const backupData = {};
+      if (selection.recipes) backupData.recipes = allRecipes;
+      if (selection.vault) backupData.vault = allVault;
+      if (selection.notes) backupData.notes = allNotes;
+
+      const backupString = JSON.stringify(backupData, null, 2);
+
+      try {
+        await Share.share({
+          message: backupString,
+          title: "TastyTabs Backup",
+        });
+      } catch (error) {
+        Alert.alert("Error", error.message);
+      }
     } else {
-      // Delete Confirmation
+      // 🦍 ACTUAL DELETE LOGIC
       Alert.alert("Final Warning", `Permanently delete: ${itemsText}?`, [
         { text: "Cancel", style: "cancel" },
         {
           text: "Yes, Delete",
           style: "destructive",
           onPress: () => {
-            console.log(`Deleted: ${itemsText}`);
-            // Dispatch delete actions here based on keys
+            if (selection.recipes) dispatch(clearAllPersonalRecipes());
+            if (selection.vault) dispatch(clearVault());
+            if (selection.notes) dispatch(clearAllNotes());
+
+            Alert.alert("Deleted", "Selected data has been wiped.");
           },
         },
       ]);
