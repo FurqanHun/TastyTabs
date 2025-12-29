@@ -7,28 +7,43 @@ import {
   Text,
   View,
   StatusBar,
-  TouchableOpacity
+  TouchableOpacity,
 } from "react-native";
 import { useSelector } from "react-redux";
 
 export default function PrivacyPolicy() {
   const router = useRouter();
-  const isDark = useSelector((state) => state.preferences.darkMode);
 
-  // Dynamic Theme Colors
+  // 🦍 1. GET BOTH STATES
+  const isDark = useSelector((state) => state.preferences.darkMode);
+  const isAmoled = useSelector((state) => state.preferences.amoledMode);
+
+  // 🦍 2. HELPER
+  const getThemeColor = (light, dark, amoled) =>
+    isDark ? (isAmoled ? amoled : dark) : light;
+
+  // 🦍 3. DYNAMIC THEME COLORS (Clean Monke Style)
   const theme = {
-    bg: isDark ? "#121212" : "#F8F9FA",
-    card: isDark ? "#1C1C1E" : "#FFFFFF",
+    bg: getThemeColor("#F8F9FA", "#121212", "#000000"),
+    card: getThemeColor("#FFFFFF", "#1E1E1E", "#121212"),
     text: isDark ? "#FFFFFF" : "#1A1A1A",
     subText: isDark ? "#AAAAAA" : "#666666",
+    border: getThemeColor("#EEEEEE", "#333333", "#222222"),
     accent: "#FF6347",
   };
 
   const PolicySection = ({ title, content, icon }) => (
-    <View style={[styles.section, { backgroundColor: theme.card }]}>
+    <View
+      style={[
+        styles.section,
+        { backgroundColor: theme.card, borderColor: theme.border },
+      ]}
+    >
       <View style={styles.sectionHeader}>
         <Ionicons name={icon} size={22} color={theme.accent} />
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
+          {title}
+        </Text>
       </View>
       <Text style={[styles.sectionContent, { color: theme.subText }]}>
         {content}
@@ -38,28 +53,42 @@ export default function PrivacyPolicy() {
 
   return (
     <View style={[styles.mainContainer, { backgroundColor: theme.bg }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={theme.bg}
+      />
+
       {/* Configure Header for Expo Router */}
-      <Stack.Screen options={{ 
-        headerShown: false,
-        title: "Privacy Policy" 
-      }} />
+      <Stack.Screen
+        options={{
+          headerShown: false,
+          title: "Privacy Policy",
+        }}
+      />
 
       {/* CUSTOM HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Privacy Policy</Text>
-        <View style={{ width: 40 }} /> 
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Privacy Policy
+        </Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.topInfo}>
-          <View style={[styles.iconCircle, { backgroundColor: isDark ? "#2C2C2E" : "#FFF5F4" }]}>
-            <Ionicons name="shield-checkmark" size={40} color={theme.accent} />
-          </View>
+          {/* 🦍 REMOVED PINK CIRCLE BACKGROUND */}
+          <Ionicons
+            name="shield-checkmark"
+            size={60}
+            color={theme.accent}
+            style={{ marginBottom: 15 }}
+          />
           <Text style={[styles.lastUpdated, { color: theme.subText }]}>
             Effective Date: December 2025
           </Text>
@@ -91,10 +120,11 @@ export default function PrivacyPolicy() {
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: theme.subText }]}>
-            For any inquiries regarding this policy or your data privacy, please contact:
+            For any inquiries regarding this policy or your data privacy, please
+            contact:
           </Text>
           <Text style={[styles.email, { color: theme.accent }]}>
-            privacy@tastytabs.app
+            furqanhun@proton.me
           </Text>
           <Text style={[styles.disclaimer, { color: theme.subText }]}>
             © 2025 TastyTabs. All rights reserved.
@@ -120,7 +150,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     justifyContent: "center",
-    alignItems: 'center'
+    alignItems: "center",
   },
   headerTitle: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 60 },
@@ -128,24 +158,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginVertical: 30,
   },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 15
+  lastUpdated: {
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
-  lastUpdated: { fontSize: 13, fontWeight: "600", textTransform: 'uppercase', letterSpacing: 1 },
   section: {
     padding: 20,
     borderRadius: 24,
     marginBottom: 16,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 15,
-    shadowOffset: { width: 0, height: 4 },
+    borderWidth: 1, // 🦍 ADDED BORDER FOR STRUCTURE
+    // 🦍 REMOVED HEAVY SHADOWS
   },
   sectionHeader: {
     flexDirection: "row",
@@ -162,9 +186,9 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: "center",
     marginTop: 40,
-    paddingHorizontal: 10
+    paddingHorizontal: 10,
   },
   footerText: { fontSize: 14, textAlign: "center", lineHeight: 20 },
   email: { fontSize: 16, fontWeight: "800", marginTop: 8 },
-  disclaimer: { fontSize: 12, marginTop: 24, fontWeight: '500' }
+  disclaimer: { fontSize: 12, marginTop: 24, fontWeight: "500" },
 });
