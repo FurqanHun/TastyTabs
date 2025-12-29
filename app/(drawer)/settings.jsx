@@ -6,7 +6,6 @@ import {
   Modal,
   Platform,
   ScrollView,
-  Share,
   StyleSheet,
   Switch,
   Text,
@@ -20,6 +19,9 @@ import { toggleAmoled, toggleTheme } from "../../store/Slices/preferencesSlice";
 import { clearAllNotes } from "../../store/Slices/personalNotesSlice";
 import { clearAllPersonalRecipes } from "../../store/Slices/personalrecipesSlice";
 import { clearVault } from "../../store/Slices/vaultSlice";
+
+import { File, Directory, Paths } from "expo-file-system";
+import * as Sharing from "expo-sharing";
 
 export default function SettingsScreen() {
   const dispatch = useDispatch();
@@ -76,6 +78,52 @@ export default function SettingsScreen() {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const saveBackupFile = async (dataString) => {
+    const fileName = `TastyTabs_Backup_${new Date().toISOString().split("T")[0]}.json`;
+
+    try {
+      if (Platform.OS === "android") {
+        // ANDROID MODERN: Pick Directory -> Create File -> Write
+        const directory = await Directory.pickDirectoryAsync();
+
+        if (directory) {
+          // Create the file in the chosen folder
+          // The second argument 'application/json' is the MIME type
+          const file = directory.createFile(fileName, "application/json");
+
+          // Write the data
+          file.write(dataString);
+
+          Alert.alert("Success", "Backup saved securely!");
+        }
+      } else {
+        // iOS MODERN: Create in Docs -> Share
+        // Paths.document gives us the app's document folder
+        const file = new File(Paths.document, fileName);
+
+        file.create();
+        file.write(dataString);
+
+        // Share Sheet (Save to Files)
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(file.uri, {
+            UTI: "public.json",
+            mimeType: "application/json",
+            dialogTitle: "Save Backup File",
+          });
+        } else {
+          Alert.alert("Error", "Sharing not available");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      if (e.message?.includes("cancelled")) {
+        return;
+      }
+      Alert.alert("Error", "Failed to save backup. " + e.message);
+    }
+  };
+
   const executeAction = async () => {
     const selectedKeys = Object.keys(selection).filter((k) => selection[k]);
 
@@ -88,7 +136,7 @@ export default function SettingsScreen() {
       .join(", ");
 
     if (actionType === "BACKUP") {
-      // 🦍 ACTUAL BACKUP LOGIC (Export JSON)
+      // ACTUAL BACKUP LOGIC (Export JSON)
       const backupData = {};
       if (selection.recipes) backupData.recipes = allRecipes;
       if (selection.vault) backupData.vault = allVault;
@@ -96,16 +144,9 @@ export default function SettingsScreen() {
 
       const backupString = JSON.stringify(backupData, null, 2);
 
-      try {
-        await Share.share({
-          message: backupString,
-          title: "TastyTabs Backup",
-        });
-      } catch (error) {
-        Alert.alert("Error", error.message);
-      }
+      await saveBackupFile(backupString);
     } else {
-      // 🦍 ACTUAL DELETE LOGIC
+      // ACTUAL DELETE LOGIC
       Alert.alert("Final Warning", `Permanently delete: ${itemsText}?`, [
         { text: "Cancel", style: "cancel" },
         {
