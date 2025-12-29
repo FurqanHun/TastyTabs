@@ -1,14 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
   Alert,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
@@ -25,10 +27,12 @@ export default function SettingsScreen() {
     isDark ? (isAmoled ? amoled : dark) : light;
 
   const BG_COLOR = getThemeColor("#F8F9FA", "#121212", "#000000");
-  const CARD_COLOR = getThemeColor("#FFFFFF", "#1E1E1E", "#121212"); // Card slightly lighter than black in Amoled
+  const CARD_COLOR = getThemeColor("#FFFFFF", "#1E1E1E", "#121212");
+  const MODAL_BG = getThemeColor("#FFFFFF", "#1E1E1E", "#121212");
   const TEXT_COLOR = isDark ? "#FFFFFF" : "#1A1A1A";
   const SUBTEXT_COLOR = isDark ? "#AAAAAA" : "#666666";
   const ICON_COLOR = isDark ? "#FFFFFF" : "#333333";
+  const BORDER_COLOR = isDark ? "#333333" : "#F0F0F0";
 
   const dynamicStyles = {
     container: { backgroundColor: BG_COLOR },
@@ -37,26 +41,64 @@ export default function SettingsScreen() {
     subText: { color: SUBTEXT_COLOR },
   };
 
+  // --- DATA MODAL STATE ---
+  const [modalVisible, setModalVisible] = useState(false);
+  const [actionType, setActionType] = useState(null); // 'BACKUP' or 'DELETE'
+  const [selection, setSelection] = useState({
+    recipes: false,
+    vault: false,
+    notes: false,
+  });
+
   // --- HANDLERS ---
-  const handleBackup = (type) => {
-    Alert.alert("Backup", `${type} backup functionality coming soon!`);
+  const openDataModal = (type) => {
+    setActionType(type);
+    // If Backup, default all to true. If Delete, default all to false (safety french fies).
+    const defaultState = type === "BACKUP";
+    setSelection({
+      recipes: defaultState,
+      vault: defaultState,
+      notes: defaultState,
+    });
+    setModalVisible(true);
   };
 
-  const handleDeleteData = (type) => {
-    Alert.alert(
-      "Delete Confirmation",
-      `Are you sure you want to delete all ${type}? This cannot be undone.`,
-      [
+  const toggleSelection = (key) => {
+    setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const executeAction = () => {
+    const selectedKeys = Object.keys(selection).filter((k) => selection[k]);
+
+    if (selectedKeys.length === 0) {
+      return Alert.alert("Wait!", "Please select at least one item.");
+    }
+
+    const itemsText = selectedKeys
+      .map((k) => k.charAt(0).toUpperCase() + k.slice(1))
+      .join(", ");
+
+    if (actionType === "BACKUP") {
+      console.log(`Backing up: ${itemsText}`);
+      Alert.alert("Backup Successful", `Saved: ${itemsText}`);
+    } else {
+      // Delete Confirmation
+      Alert.alert("Final Warning", `Permanently delete: ${itemsText}?`, [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete",
+          text: "Yes, Delete",
           style: "destructive",
-          onPress: () => console.log(`${type} deleted (placeholder)`),
+          onPress: () => {
+            console.log(`Deleted: ${itemsText}`);
+            // Dispatch delete actions here based on keys
+          },
         },
-      ],
-    );
+      ]);
+    }
+    setModalVisible(false);
   };
 
+  // HELPER COMPONENT FOR SETTINGS ROW
   const SettingRow = ({
     icon,
     label,
@@ -71,10 +113,7 @@ export default function SettingsScreen() {
     <TouchableOpacity
       style={[
         styles.row,
-        !isLast && {
-          borderBottomWidth: 1,
-          borderBottomColor: isDark ? "#333" : "#f0f0f0",
-        },
+        !isLast && { borderBottomWidth: 1, borderBottomColor: BORDER_COLOR },
       ]}
       onPress={onPress}
       disabled={isSwitch}
@@ -115,132 +154,227 @@ export default function SettingsScreen() {
   );
 
   return (
-    <ScrollView
-      style={[styles.container, dynamicStyles.container]}
-      contentContainerStyle={{ paddingBottom: 50 }}
-    >
-      {/* HEADER */}
-      <View style={[styles.header, { backgroundColor: BG_COLOR }]}>
-        <Text style={[styles.headerTitle, dynamicStyles.text]}>Settings</Text>
-      </View>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={[styles.container, dynamicStyles.container]}
+        contentContainerStyle={{ paddingBottom: 50 }}
+      >
+        {/* HEADER */}
+        <View style={[styles.header, { backgroundColor: BG_COLOR }]}>
+          <Text style={[styles.headerTitle, dynamicStyles.text]}>Settings</Text>
+        </View>
 
-      {/* APPEARANCE SECTION */}
-      <View style={[styles.section, dynamicStyles.sectionBg]}>
-        <Text style={styles.sectionLabel}>Appearance</Text>
-
-        <SettingRow
-          icon={isDark ? "moon" : "moon-outline"}
-          label="Dark Mode"
-          isSwitch
-          value={isDark}
-          onValueChange={() => dispatch(toggleTheme())}
-          isLast={!isDark} // If dark mode is off, this is the last item
-        />
-
-        {isDark && (
+        {/* APPEARANCE */}
+        <View style={[styles.section, dynamicStyles.sectionBg]}>
+          <Text style={styles.sectionLabel}>Appearance</Text>
           <SettingRow
-            icon="contrast"
-            label="AMOLED Mode"
-            subLabel="Pitch black background"
+            icon={isDark ? "moon" : "moon-outline"}
+            label="Dark Mode"
             isSwitch
-            value={isAmoled}
-            onValueChange={() => dispatch(toggleAmoled())}
+            value={isDark}
+            onValueChange={() => dispatch(toggleTheme())}
+            isLast={!isDark}
+          />
+          {isDark && (
+            <SettingRow
+              icon="contrast"
+              label="AMOLED Mode"
+              subLabel="Pitch black background"
+              isSwitch
+              value={isAmoled}
+              onValueChange={() => dispatch(toggleAmoled())}
+              isLast={true}
+            />
+          )}
+        </View>
+
+        {/* DATA CONTROL (Opens Custom Modal) */}
+        <View style={[styles.section, dynamicStyles.sectionBg]}>
+          <Text style={styles.sectionLabel}>Data Control</Text>
+
+          <SettingRow
+            icon="cloud-upload-outline"
+            label="Backup Data"
+            subLabel="Select items to backup"
+            onPress={() => openDataModal("BACKUP")}
+          />
+
+          <SettingRow
+            icon="download-outline"
+            label="Restore Data"
+            subLabel="Restore from file"
+            onPress={() => Alert.alert("Restore", "Feature coming soon.")}
+          />
+
+          <SettingRow
+            icon="trash-outline"
+            label="Manage Storage"
+            subLabel="Select items to clear"
+            color="#FF3B30"
+            onPress={() => openDataModal("DELETE")}
             isLast={true}
           />
-        )}
-      </View>
-
-      {/* BACKUP & RESTORE SECTION */}
-      <View style={[styles.section, dynamicStyles.sectionBg]}>
-        <Text style={styles.sectionLabel}>Backup & Restore</Text>
-        <SettingRow
-          icon="cloud-upload-outline"
-          label="Backup All Data"
-          onPress={() => handleBackup("Full Data")}
-        />
-        <SettingRow
-          icon="receipt-outline"
-          label="Backup Recipes Only"
-          onPress={() => handleBackup("Recipes")}
-        />
-        <SettingRow
-          icon="download-outline"
-          label="Restore from Backup"
-          onPress={() => Alert.alert("Restore", "Coming soon.")}
-          isLast={true}
-        />
-      </View>
-
-      {/* DATA MANAGEMENT SECTION */}
-      <View style={[styles.section, dynamicStyles.sectionBg]}>
-        <Text style={styles.sectionLabel}>Data Management</Text>
-        <SettingRow
-          icon="heart-dislike-outline"
-          label="Clear Favourites"
-          color="#FF3B30"
-          onPress={() => handleDeleteData("Vault")}
-        />
-        <SettingRow
-          icon="document-text-outline"
-          label="Clear Personal Notes"
-          color="#FF3B30"
-          onPress={() => handleDeleteData("Notes")}
-        />
-        <SettingRow
-          icon="trash-outline"
-          label="Delete All Personal Recipes"
-          color="#FF3B30"
-          onPress={() => handleDeleteData("Personal Recipes")}
-          isLast={true}
-        />
-      </View>
-
-      {/* ABOUT SECTION */}
-      <View style={[styles.section, dynamicStyles.sectionBg]}>
-        <Text style={styles.sectionLabel}>About</Text>
-
-        <View
-          style={[
-            styles.row,
-            {
-              borderBottomWidth: 1,
-              borderBottomColor: isDark ? "#333" : "#f0f0f0",
-            },
-          ]}
-        >
-          <Text style={[styles.rowText, dynamicStyles.text]}>App Version</Text>
-          <Text style={[styles.subText, { color: SUBTEXT_COLOR }]}>1.0.0</Text>
         </View>
 
-        <View
-          style={[
-            styles.row,
-            {
-              borderBottomWidth: 1,
-              borderBottomColor: isDark ? "#333" : "#f0f0f0",
-            },
-          ]}
-        >
-          <Text style={[styles.rowText, dynamicStyles.text]}>Developer</Text>
-          <Text style={[styles.subText, { color: SUBTEXT_COLOR }]}>FAABS</Text>
+        {/* ABOUT */}
+        <View style={[styles.section, dynamicStyles.sectionBg]}>
+          <Text style={styles.sectionLabel}>About</Text>
+          <View
+            style={[
+              styles.row,
+              { borderBottomWidth: 1, borderBottomColor: BORDER_COLOR },
+            ]}
+          >
+            <Text style={[styles.rowText, dynamicStyles.text]}>
+              App Version
+            </Text>
+            <Text style={[styles.subText, { color: SUBTEXT_COLOR }]}>
+              1.0.0
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.row,
+              { borderBottomWidth: 1, borderBottomColor: BORDER_COLOR },
+            ]}
+          >
+            <Text style={[styles.rowText, dynamicStyles.text]}>Developer</Text>
+            <Text style={[styles.subText, { color: SUBTEXT_COLOR }]}>
+              FAABS
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.row, { paddingVertical: 14 }]}
+            onPress={() => router.push("/privacypolicy")}
+          >
+            <Text style={[styles.rowText, dynamicStyles.text]}>
+              Privacy Policy
+            </Text>
+            <Ionicons name="open-outline" size={16} color={SUBTEXT_COLOR} />
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={[styles.row, { paddingVertical: 14 }]}
-          onPress={() => router.push("/privacypolicy")}
-        >
-          <Text style={[styles.rowText, dynamicStyles.text]}>
-            Privacy Policy
+        <View style={styles.aboutBox}>
+          <Ionicons name="fast-food" size={40} color="#FF6347" />
+          <Text style={[styles.appName, dynamicStyles.text]}>TastyTabs</Text>
+          <Text style={[styles.version, { color: SUBTEXT_COLOR }]}>
+            the only one
           </Text>
-          <Ionicons name="open-outline" size={16} color={SUBTEXT_COLOR} />
-        </TouchableOpacity>
-      </View>
+        </View>
+      </ScrollView>
 
-      <View style={styles.aboutBox}>
-        <Ionicons name="fast-food" size={40} color="#FF6347" />
-        <Text style={[styles.appName, dynamicStyles.text]}>TastyTabs</Text>
-      </View>
-    </ScrollView>
+      {/* CUSTOM DATA ACTION MODAL */}
+      <Modal visible={modalVisible} transparent animationType="fade">
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View
+                style={[styles.modalContent, { backgroundColor: MODAL_BG }]}
+              >
+                {/* Header */}
+                <View style={styles.modalHeader}>
+                  <Text style={[styles.modalTitle, dynamicStyles.text]}>
+                    {actionType === "BACKUP"
+                      ? "Backup Selection"
+                      : "Delete Selection"}
+                  </Text>
+                  <Text
+                    style={[styles.modalSubtitle, { color: SUBTEXT_COLOR }]}
+                  >
+                    {actionType === "BACKUP"
+                      ? "Choose what to save."
+                      : "Choose what to remove forever."}
+                  </Text>
+                </View>
+
+                {/* Toggles */}
+                <View style={styles.toggleContainer}>
+                  {[
+                    { key: "recipes", label: "My Recipes", icon: "restaurant" },
+                    { key: "vault", label: "Favorites / Vault", icon: "heart" },
+                    {
+                      key: "notes",
+                      label: "Personal Notes",
+                      icon: "document-text",
+                    },
+                  ].map((item) => (
+                    <TouchableOpacity
+                      key={item.key}
+                      style={[styles.toggleRow, { borderColor: BORDER_COLOR }]}
+                      onPress={() => toggleSelection(item.key)}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <Ionicons
+                          name={item.icon}
+                          size={20}
+                          color={
+                            selection[item.key] ? "#FF6347" : SUBTEXT_COLOR
+                          }
+                        />
+                        <Text style={[styles.toggleLabel, dynamicStyles.text]}>
+                          {item.label}
+                        </Text>
+                      </View>
+                      <Switch
+                        value={selection[item.key]}
+                        onValueChange={() => toggleSelection(item.key)}
+                        trackColor={{ true: "#FF6347", false: "#767577" }}
+                        thumbColor={
+                          Platform.OS === "ios"
+                            ? undefined
+                            : selection[item.key]
+                              ? "#FF6347"
+                              : "#f4f3f4"
+                        }
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Action Buttons */}
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.btn,
+                      styles.cancelBtn,
+                      { borderColor: BORDER_COLOR },
+                    ]}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Text style={{ color: SUBTEXT_COLOR, fontWeight: "600" }}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.btn,
+                      {
+                        backgroundColor:
+                          actionType === "DELETE" ? "#FF3B30" : "#FF6347",
+                      },
+                    ]}
+                    onPress={executeAction}
+                  >
+                    <Text style={{ color: "#FFF", fontWeight: "bold" }}>
+                      {actionType === "DELETE"
+                        ? "Delete Selected"
+                        : "Backup Selected"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </View>
   );
 }
 
@@ -286,5 +420,52 @@ const styles = StyleSheet.create({
   },
   appName: { fontSize: 24, fontWeight: "800", marginTop: 10 },
   version: { fontSize: 14, marginTop: 4 },
-  credits: { fontSize: 14, marginTop: 4 },
+
+  // MODAL STYLES
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    width: "100%",
+    borderRadius: 24,
+    padding: 24,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+  },
+  modalHeader: {
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  modalTitle: { fontSize: 20, fontWeight: "800" },
+  modalSubtitle: { fontSize: 14, marginTop: 4 },
+  toggleContainer: { gap: 10, marginBottom: 25 },
+  toggleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  toggleLabel: { fontSize: 16, fontWeight: "500" },
+  actionRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  btn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelBtn: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+  },
 });
