@@ -20,9 +20,12 @@ const personalNotesSlice = createSlice({
     clearAllNotes: (state) => {
       state.notes = {};
     },
+    setAllNotes: (state, action) => {
+      state.notes = action.payload || {};
+    },
   },
 });
 
-export const { saveNote, clearNote, clearAllNotes } =
+export const { saveNote, clearNote, clearAllNotes, setAllNotes } =
   personalNotesSlice.actions;
 export default personalNotesSlice.reducer;

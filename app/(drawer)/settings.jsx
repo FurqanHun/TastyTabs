@@ -16,12 +16,19 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { toggleAmoled, toggleTheme } from "../../store/Slices/preferencesSlice";
 
-import { clearAllNotes } from "../../store/Slices/personalNotesSlice";
-import { clearAllPersonalRecipes } from "../../store/Slices/personalrecipesSlice";
-import { clearVault } from "../../store/Slices/vaultSlice";
+import {
+  clearAllNotes,
+  setAllNotes,
+} from "../../store/Slices/personalNotesSlice";
+import {
+  clearAllPersonalRecipes,
+  setAllPersonalRecipes,
+} from "../../store/Slices/personalrecipesSlice";
+import { clearVault, setVaultItems } from "../../store/Slices/vaultSlice";
 
 import { File, Directory, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import * as DocumentPicker from "expo-document-picker";
 
 export default function SettingsScreen() {
   const dispatch = useDispatch();
@@ -78,6 +85,70 @@ export default function SettingsScreen() {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleRestore = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/json",
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const fileUri = result.assets[0].uri;
+
+      // Use Modern File API to read content
+      // Note: 'File' constructor expects a path, but URI from picker might need conversion on some platforms
+
+      // Using fetch() is the most robust way to read a local file URI in JS without legacy libs
+      const response = await fetch(fileUri);
+      const fileContent = await response.text();
+
+      const parsedData = JSON.parse(fileContent);
+
+      if (!parsedData || typeof parsedData !== "object") {
+        throw new Error("Invalid backup file format.");
+      }
+
+      Alert.alert(
+        "Confirm Restore",
+        "This will overwrite your current data with the backup. Are you sure?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Yes, Restore",
+            onPress: () => processRestore(parsedData),
+          },
+        ],
+      );
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to restore backup. Invalid JSON.");
+    }
+  };
+
+  const processRestore = (data) => {
+    let restoreCount = 0;
+
+    if (data.recipes && Array.isArray(data.recipes)) {
+      dispatch(setAllPersonalRecipes(data.recipes));
+      restoreCount++;
+    }
+    if (data.vault && Array.isArray(data.vault)) {
+      dispatch(setVaultItems(data.vault));
+      restoreCount++;
+    }
+    if (data.notes && typeof data.notes === "object") {
+      dispatch(setAllNotes(data.notes));
+      restoreCount++;
+    }
+
+    if (restoreCount > 0) {
+      Alert.alert("Success", "Data restored successfully!");
+    } else {
+      Alert.alert("Warning", "No valid data found in this backup file.");
+    }
+  };
+
   const saveBackupFile = async (dataString) => {
     const fileName = `TastyTabs_Backup_${new Date().toISOString().split("T")[0]}.json`;
 
@@ -91,7 +162,6 @@ export default function SettingsScreen() {
           // The second argument 'application/json' is the MIME type
           const file = directory.createFile(fileName, "application/json");
 
-          // Write the data
           file.write(dataString);
 
           Alert.alert("Success", "Backup saved securely!");
@@ -270,7 +340,7 @@ export default function SettingsScreen() {
             icon="download-outline"
             label="Restore Data"
             subLabel="Restore from file"
-            onPress={() => Alert.alert("Restore", "Feature coming soon.")}
+            onPress={() => handleRestore()}
           />
 
           <SettingRow

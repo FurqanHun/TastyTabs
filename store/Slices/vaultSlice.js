@@ -24,8 +24,12 @@ const vaultSlice = createSlice({
     clearVault: (state) => {
       state.items = [];
     },
+    setVaultItems: (state, action) => {
+      state.items = action.payload || [];
+    },
   },
 });
 
-export const { toggleVaultItem, clearVault } = vaultSlice.actions;
+export const { toggleVaultItem, clearVault, setVaultItems } =
+  vaultSlice.actions;
 export default vaultSlice.reducer;
