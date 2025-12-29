@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { DrawerActions } from "@react-navigation/native";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter, usePathname } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import {
   Image,
@@ -12,13 +12,67 @@ import {
   View,
 } from "react-native";
 import { useSelector } from "react-redux";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // 🦍 IMPORT THIS
 
 // --- Custom Header Component ---
 function CustomVVIPHeader() {
   const navigation = useNavigation();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const isDark = useSelector((state) => state.preferences.darkMode);
   const isAmoled = useSelector((state) => state.preferences.amoledMode);
+
+  // THE SMART "LUCKY" HANDLER
+  const handleSurprise = async () => {
+    const CACHE_KEY = "TASTYTABS_LUCKY_PICK";
+    const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 Hours in milliseconds
+
+    try {
+      const now = Date.now();
+      const cached = await AsyncStorage.getItem(CACHE_KEY);
+
+      //chek if we have a saved pick
+      if (cached) {
+        const { id, timestamp } = JSON.parse(cached);
+
+        // freshness check (less than 4 hours old)
+        if (now - timestamp < CACHE_DURATION) {
+          // console.log("Using Cached Lucky Pick:", id);
+          router.push(`/recipe/${id}`);
+          return;
+        }
+      }
+
+      // no cache or expired, fetch a new one
+      // console.log("Fetching New Lucky Pick...");
+      const response = await axios.get(
+        "https://www.themealdb.com/api/json/v1/1/random.php",
+      );
+
+      if (response.data.meals) {
+        const randomId = response.data.meals[0].idMeal;
+
+        //save for next time
+        await AsyncStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({
+            id: randomId,
+            timestamp: now,
+          }),
+        );
+
+        router.push(`/recipe/${randomId}`);
+      }
+    } catch (_) {
+      // console.log("No banana found:", e);
+    }
+  };
+
+  // Hide on settings screens
+  const isRestricted =
+    pathname.includes("settings") || pathname.includes("personal");
 
   const getThemeColor = (light, dark, amoled) =>
     isDark ? (isAmoled ? amoled : dark) : light;
@@ -30,15 +84,11 @@ function CustomVVIPHeader() {
 
   const floatStyle = {
     backgroundColor: getThemeColor(
-      "rgba(255, 255, 255, 0.98)", // Light
-      "rgba(30,30,30,0.98)", // Dark
-      "#000000", // Amoled (Pitch Black)
+      "rgba(255, 255, 255, 0.98)",
+      "rgba(30,30,30,0.98)",
+      "#000000",
     ),
-    borderColor: getThemeColor(
-      "rgba(255, 99, 71, 0.1)", // Light
-      "#333", // Dark
-      "#222", // Amoled
-    ),
+    borderColor: getThemeColor("rgba(255, 99, 71, 0.1)", "#333", "#222"),
   };
 
   const circleStyle = {
@@ -60,9 +110,17 @@ function CustomVVIPHeader() {
           <Ionicons name="menu-outline" size={26} color="#ff6347" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.iconButton, btnStyle]}>
-          <Ionicons name="notifications-outline" size={22} color="#ff6347" />
-        </TouchableOpacity>
+        {/* 🦍 THE DICE BUTTON */}
+        {!isRestricted ? (
+          <TouchableOpacity
+            style={[styles.iconButton, btnStyle]}
+            onPress={handleSurprise}
+          >
+            <Ionicons name="dice-outline" size={24} color="#ff6347" />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       <View style={[styles.logoCircleContainer, circleStyle]}>
@@ -217,8 +275,6 @@ export default function DrawerLayout() {
           borderTopRightRadius: 30,
           borderBottomRightRadius: 30,
           overflow: "hidden",
-          // Background color handled by content,
-          //but we set this to transparent to avoid white corners
           backgroundColor: "transparent",
         },
       }}
