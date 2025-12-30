@@ -9,10 +9,12 @@ import {
   RefreshControl,
   Platform,
   StatusBar,
+  TouchableOpacity,
 } from "react-native";
 import { useSelector } from "react-redux";
 import { fetchMeals } from "../../../api/listallmeals";
 import { MealCard } from "../../../components/MealCard";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Index() {
   const isDark = useSelector((state) => state.preferences.darkMode);
@@ -23,6 +25,7 @@ export default function Index() {
     isLoading,
     isRefetching,
     refetch,
+    isError,
   } = useQuery({
     queryKey: ["meals"],
     queryFn: () => fetchMeals(10),
@@ -40,6 +43,23 @@ export default function Index() {
   const bg = isDark ? (isAmoled ? "#000000" : "#121212") : "#fff";
   const containerBg = { backgroundColor: bg };
   const textColor = { color: isDark ? "#fff" : "#1a1a1a" };
+
+  if (isError) {
+    return (
+      <View style={[styles.center, containerBg]}>
+        <Ionicons name="cloud-offline-outline" size={64} color="#ff6347" />
+        <Text style={[styles.sectionLabel, textColor, { marginTop: 20 }]}>
+          No Connection
+        </Text>
+        <Text style={{ color: isDark ? "#aaa" : "#666", marginBottom: 20 }}>
+          We couldn&apos;t fetch the menu.
+        </Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={refetch}>
+          <Text style={styles.retryText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -142,5 +162,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     paddingHorizontal: 5,
+  },
+  retryBtn: {
+    backgroundColor: "#ff6347",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  retryText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
