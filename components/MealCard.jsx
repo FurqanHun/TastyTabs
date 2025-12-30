@@ -13,8 +13,9 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleVaultItem } from "../store/Slices/vaultSlice";
+import { appendMeals } from "../store/Slices/recipeSlice";
 
-const MealCardComponent = ({ meal, isHero }) => {
+const MealCardComponent = ({ meal, isHero, style }) => {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const dispatch = useDispatch();
@@ -36,7 +37,14 @@ const MealCardComponent = ({ meal, isHero }) => {
     dispatch(toggleVaultItem(meal));
   };
 
-  const cardWidth = isHero
+  // Force Cache on Press
+  const handlePress = () => {
+    // Save this specific meal to the global Redux store
+    dispatch(appendMeals([meal]));
+    router.push(`/recipe/${meal.idMeal}`);
+  };
+
+  const defaultWidth = isHero
     ? width - 24
     : width > 900
       ? width / 3 - 24
@@ -65,16 +73,16 @@ const MealCardComponent = ({ meal, isHero }) => {
   return (
     <TouchableOpacity
       activeOpacity={0.85}
-      onPress={() => router.push(`/recipe/${meal.idMeal}`)}
+      onPress={handlePress}
       onMouseEnter={animateIn}
       onMouseLeave={animateOut}
-      style={{ margin: 6 }}
+      style={[{ margin: 6 }, style]}
     >
       <Animated.View
         style={[
           styles.card,
           cardBgStyle,
-          { width: cardWidth, transform: [{ scale }] },
+          { width: style?.width || defaultWidth, transform: [{ scale }] },
         ]}
       >
         <ImageBackground
@@ -98,8 +106,10 @@ const MealCardComponent = ({ meal, isHero }) => {
           </TouchableOpacity>
 
           <View style={styles.textContainer}>
-            {/* 🦍 Text stays White because it's on an image overlay */}
-            <Text style={[styles.name, { fontSize: isHero ? 20 : 16 }]}>
+            <Text
+              style={[styles.name, { fontSize: isHero ? 20 : 16 }]}
+              numberOfLines={2}
+            >
               {meal.strMeal}
             </Text>
 

@@ -10,74 +10,145 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Modal,
+  Alert,
+  ScrollView,
+  TouchableWithoutFeedback,
+  ActivityIndicator,
 } from "react-native";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // 🦍 IMPORT THIS
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useState, useEffect } from "react";
+import { MealCard } from "../../components/MealCard";
+import { appendMeals } from "../../store/Slices/recipeSlice";
+
+// Stable Constants
+const CACHE_KEY = "TASTYTABS_LUCKY_PICK_OBJ";
+const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 Hours
+// const CACHE_DURATION = 10 * 1000; // 🦍 10 Sec Test Mode
+
+const formatTime = (ms) => {
+  const totalSeconds = Math.floor(ms / 1000);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${h}h ${m}m ${s}s`;
+};
 
 // --- Custom Header Component ---
 function CustomVVIPHeader() {
   const navigation = useNavigation();
   const router = useRouter();
+  const dispatch = useDispatch();
   const pathname = usePathname();
 
   const isDark = useSelector((state) => state.preferences.darkMode);
   const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
-  // THE SMART "LUCKY" HANDLER
-  const handleSurprise = async () => {
-    const CACHE_KEY = "TASTYTABS_LUCKY_PICK";
-    const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 Hours in milliseconds
+  // LUCKY MODAL STATE
+  const [modalVisible, setModalVisible] = useState(false);
+  const [luckyMeal, setLuckyMeal] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState("");
+  const [isReadyToRoll, setIsReadyToRoll] = useState(false);
 
+  const fetchNewLuckyMeal = async () => {
     try {
-      const now = Date.now();
-      const cached = await AsyncStorage.getItem(CACHE_KEY);
-
-      //chek if we have a saved pick
-      if (cached) {
-        const { id, timestamp } = JSON.parse(cached);
-
-        // freshness check (less than 4 hours old)
-        if (now - timestamp < CACHE_DURATION) {
-          // console.log("Using Cached Lucky Pick:", id);
-          router.push(`/recipe/${id}`);
-          return;
-        }
-      }
-
-      // no cache or expired, fetch a new one
-      // console.log("Fetching New Lucky Pick...");
+      setLoading(true);
       const response = await axios.get(
         "https://www.themealdb.com/api/json/v1/1/random.php",
       );
 
       if (response.data.meals) {
-        const randomId = response.data.meals[0].idMeal;
+        const meal = response.data.meals[0];
+        const now = Date.now();
 
-        //save for next time
         await AsyncStorage.setItem(
           CACHE_KEY,
           JSON.stringify({
-            id: randomId,
+            meal: meal,
             timestamp: now,
           }),
         );
 
-        router.push(`/recipe/${randomId}`);
+        //feed Redux immediately upon fetch
+        dispatch(appendMeals([meal]));
+
+        setLuckyMeal(meal);
+        setTimeLeft(formatTime(CACHE_DURATION));
+        setIsReadyToRoll(false);
+        setLoading(false);
+        return true;
       }
     } catch (_) {
-      // console.log("No banana found:", e);
+      setLoading(false);
+      Alert.alert(
+        "Connection Error",
+        "Could not fetch a lucky recipe. Check your internet!",
+      );
+      return false;
     }
   };
 
-  // Hide on settings screens
+  const handleSurprise = async () => {
+    setModalVisible(true);
+    setLoading(true);
+
+    const now = Date.now();
+    const cached = await AsyncStorage.getItem(CACHE_KEY);
+
+    if (cached) {
+      const { meal, timestamp } = JSON.parse(cached);
+      if (now - timestamp < CACHE_DURATION) {
+        //feed Redux immediately upon Cache Hit
+        dispatch(appendMeals([meal]));
+
+        setLuckyMeal(meal);
+        const diff = timestamp + CACHE_DURATION - now;
+        setTimeLeft(formatTime(diff));
+        setIsReadyToRoll(false);
+        setLoading(false);
+        return;
+      }
+    }
+
+    await fetchNewLuckyMeal();
+  };
+
+  useEffect(() => {
+    let interval;
+    if (modalVisible && luckyMeal && !loading) {
+      const checkTimer = async () => {
+        const cached = await AsyncStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { timestamp } = JSON.parse(cached);
+          const now = Date.now();
+          const diff = timestamp + CACHE_DURATION - now;
+
+          if (diff <= 0) {
+            setTimeLeft("Ready to Roll!");
+            setIsReadyToRoll(true);
+            if (interval) clearInterval(interval);
+          } else {
+            setTimeLeft(formatTime(diff));
+            setIsReadyToRoll(false);
+          }
+        }
+      };
+
+      checkTimer();
+      interval = setInterval(checkTimer, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [modalVisible, luckyMeal, loading]);
+
   const isRestricted =
     pathname.includes("settings") || pathname.includes("personal");
 
   const getThemeColor = (light, dark, amoled) =>
     isDark ? (isAmoled ? amoled : dark) : light;
 
-  // Dynamic Styles
   const bgStyle = {
     backgroundColor: getThemeColor("#fff", "#121212", "#000000"),
   };
@@ -100,6 +171,9 @@ function CustomVVIPHeader() {
     backgroundColor: getThemeColor("#fff5f4", "#2c2c2e", "#121212"),
   };
 
+  const modalBg = getThemeColor("white", "#1e1e1e", "#121212");
+  const modalText = getThemeColor("#333", "#fff", "#fff");
+
   return (
     <View style={[styles.headerWrapper, bgStyle]}>
       <View style={[styles.floatingHeaderContainer, floatStyle]}>
@@ -110,7 +184,7 @@ function CustomVVIPHeader() {
           <Ionicons name="menu-outline" size={26} color="#ff6347" />
         </TouchableOpacity>
 
-        {/* 🦍 THE DICE BUTTON */}
+        {/* THE DICE BUTTON */}
         {!isRestricted ? (
           <TouchableOpacity
             style={[styles.iconButton, btnStyle]}
@@ -130,6 +204,123 @@ function CustomVVIPHeader() {
           resizeMode="contain"
         />
       </View>
+
+      {/* LUCKY RECIPE MODAL */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.modalContent, { backgroundColor: modalBg }]}>
+                {/* HEADER */}
+                <View style={styles.modalHeader}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text style={{ fontSize: 24, marginRight: 5 }}>🍀</Text>
+                    <Text style={[styles.modalTitle, { color: modalText }]}>
+                      Lucky Pick
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setModalVisible(false)}>
+                    <Ionicons name="close-circle" size={28} color="#ff6347" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* LOADING */}
+                {loading ? (
+                  <View style={{ padding: 40, alignItems: "center" }}>
+                    <ActivityIndicator size="large" color="#ff6347" />
+                    <Text
+                      style={{
+                        color: "#888",
+                        marginTop: 15,
+                        fontWeight: "600",
+                      }}
+                    >
+                      Rolling the dice...
+                    </Text>
+                  </View>
+                ) : (
+                  // CONTENT
+                  luckyMeal && (
+                    <ScrollView
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={{
+                        alignItems: "center",
+                        paddingBottom: 20,
+                      }}
+                      style={{ width: "100%" }}
+                    >
+                      <TouchableOpacity
+                        activeOpacity={0.9}
+                        style={styles.cardWrapper}
+                        onPress={() => {
+                          // Safety Dispatch before Nav (Card Press)
+                          dispatch(appendMeals([luckyMeal]));
+                          setModalVisible(false);
+                          router.push(`/recipe/${luckyMeal.idMeal}`);
+                        }}
+                      >
+                        <View pointerEvents="none">
+                          <MealCard
+                            meal={luckyMeal}
+                            style={{ width: "100%" }}
+                          />
+                        </View>
+                      </TouchableOpacity>
+
+                      <View style={styles.timerContainer}>
+                        <Ionicons
+                          name={isReadyToRoll ? "sparkles" : "time-outline"}
+                          size={18}
+                          color={isReadyToRoll ? "#ff6347" : "#888"}
+                        />
+                        <Text
+                          style={[
+                            styles.timerLabel,
+                            { color: isReadyToRoll ? "#ff6347" : "#888" },
+                          ]}
+                        >
+                          {isReadyToRoll ? "Cooldown Over!" : "Next roll in: "}{" "}
+                          <Text
+                            style={{ color: "#ff6347", fontWeight: "bold" }}
+                          >
+                            {!isReadyToRoll && timeLeft}
+                          </Text>
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.visitBtn,
+                          isReadyToRoll && { backgroundColor: "#32CD32" },
+                        ]}
+                        onPress={() => {
+                          if (isReadyToRoll) {
+                            fetchNewLuckyMeal();
+                          } else {
+                            // Safety Dispatch before Nav (Button Press)
+                            dispatch(appendMeals([luckyMeal]));
+                            setModalVisible(false);
+                            router.push(`/recipe/${luckyMeal.idMeal}`);
+                          }
+                        }}
+                      >
+                        <Text style={styles.visitBtnText}>
+                          {isReadyToRoll ? "Roll Again !" : "Cook This Now!"}
+                        </Text>
+                      </TouchableOpacity>
+                    </ScrollView>
+                  )
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
@@ -307,6 +498,12 @@ export default function DrawerLayout() {
           ),
         }}
       />
+      <Drawer.Screen
+        name="privacypolicy"
+        options={{
+          drawerItemStyle: { display: "none" },
+        }}
+      />
     </Drawer>
   );
 }
@@ -406,7 +603,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginLeft: 15,
   },
-
   bottomSection: {
     borderTopWidth: 1,
     paddingTop: 10,
@@ -417,4 +613,74 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   footerText: { color: "#bbb", fontSize: 11 },
+
+  //MODAL STYLES
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "85%",
+    maxHeight: "85%",
+    borderRadius: 24,
+    padding: 20,
+    alignItems: "center",
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    overflow: "hidden",
+  },
+  modalHeader: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  cardWrapper: {
+    width: "100%",
+    marginBottom: 5,
+  },
+  timerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+    backgroundColor: "rgba(0,0,0,0.05)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  timerLabel: {
+    fontSize: 14,
+    marginLeft: 6,
+    fontWeight: "600",
+  },
+  visitBtn: {
+    backgroundColor: "#ff6347",
+    paddingVertical: 14,
+    width: "100%",
+    borderRadius: 20,
+    alignItems: "center",
+    shadowColor: "#ff6347",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  visitBtnText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 16,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
 });

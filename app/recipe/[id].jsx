@@ -41,6 +41,7 @@ export default function RecipeDetail() {
   const [isNoteModalVisible, setNoteModalVisible] = useState(false);
   const [playVideo, setPlayVideo] = useState(false);
 
+  //GET PERSONAL RECIPES
   const personalRecipes = useSelector(
     (state) => state.personalrecipes?.allmyrecipes || [],
   );
@@ -48,13 +49,21 @@ export default function RecipeDetail() {
     (r) => String(r.idMeal) === String(id),
   );
 
+  //GET CACHED RECIPES (This is where the Lucky Meal lives)
+  const { allmeals } = useSelector((state) => state.recipe);
+  const cachedMeal = allmeals.find((r) => String(r.idMeal) === String(id));
+
+  const existingMeal = personalMeal || cachedMeal;
+
   const { data: apiMeal, isLoading } = useQuery({
     queryKey: ["meal", id],
     queryFn: () => fetchMealById(id),
-    enabled: !personalMeal,
+    // DISABLE API if we already have the meal in Redux
+    enabled: !existingMeal,
   });
 
-  const meal = personalMeal || apiMeal;
+  // FINAL MEAL OBJECT
+  const meal = existingMeal || apiMeal;
 
   const isVaulted = useSelector((state) => {
     const items = Array.isArray(state.vault)
@@ -147,7 +156,7 @@ export default function RecipeDetail() {
     }
   };
 
-  if (isLoading && !personalMeal) {
+  if (isLoading && !existingMeal) {
     return (
       <View style={[styles.center, { backgroundColor: theme.bg }]}>
         <ActivityIndicator size="large" color="#ff6347" />
