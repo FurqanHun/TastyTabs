@@ -28,6 +28,11 @@ const SEARCH_MODES = [
   { id: "area", label: "Region" },
 ];
 
+const SCOPES = [
+  { id: "global", label: "Everything" },
+  { id: "personal", label: "My Kitchen" },
+];
+
 const LoadingChips = () => (
   <ScrollView
     horizontal
@@ -70,6 +75,7 @@ export default function SearchScreen() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [searchMode, setSearchMode] = useState("name");
+  const [searchScope, setSearchScope] = useState("global");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [sort, setSort] = useState("NEW");
 
@@ -97,10 +103,6 @@ export default function SearchScreen() {
 
   const handleSearchTextChange = (text) => {
     setSearch(text);
-    if (text.length === 1 && !showFilters) {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setShowFilters(true);
-    }
   };
 
   useEffect(() => {
@@ -112,10 +114,10 @@ export default function SearchScreen() {
 
   // UNIFIED LOCAL SEARCH (Cache + Vault + Personal)
   const localSearchResults = useMemo(() => {
-    if (!debouncedSearch) return [];
-    const query = debouncedSearch.toLowerCase();
+    // If searching Personal, we allow empty query (show all personal recipes)
+    if (!debouncedSearch && searchScope !== "personal") return [];
 
-    // Map ensures no duplicates if a meal is in Vault AND Cache
+    const query = debouncedSearch.toLowerCase();
     const combinedMap = new Map();
 
     const addToMap = (list) => {
@@ -123,23 +125,30 @@ export default function SearchScreen() {
         if (!combinedMap.has(item.idMeal)) {
           let match = false;
 
-          if (searchMode === "name") {
-            match = item.strMeal?.toLowerCase().includes(query);
-          } else if (searchMode === "category") {
-            match = item.strCategory?.toLowerCase().includes(query);
-          } else if (searchMode === "area") {
-            match = item.strArea?.toLowerCase().includes(query);
-          } else if (searchMode === "ingredient") {
-            // Check both personal format (array) and API format (strIngredientX)
-            if (item.ingredients && Array.isArray(item.ingredients)) {
-              match = item.ingredients.some((i) =>
-                i.name.toLowerCase().includes(query),
-              );
-            } else {
-              for (let i = 1; i <= 20; i++) {
-                if (item[`strIngredient${i}`]?.toLowerCase().includes(query)) {
-                  match = true;
-                  break;
+          // If showing My Kitchen with no text -> Show All
+          if (!debouncedSearch && searchScope === "personal") {
+            match = true;
+          } else {
+            // Apply Criteria (Name, Ingredient, etc.)
+            if (searchMode === "name") {
+              match = item.strMeal?.toLowerCase().includes(query);
+            } else if (searchMode === "category") {
+              match = item.strCategory?.toLowerCase().includes(query);
+            } else if (searchMode === "area") {
+              match = item.strArea?.toLowerCase().includes(query);
+            } else if (searchMode === "ingredient") {
+              if (item.ingredients && Array.isArray(item.ingredients)) {
+                match = item.ingredients.some((i) =>
+                  i.name.toLowerCase().includes(query),
+                );
+              } else {
+                for (let i = 1; i <= 20; i++) {
+                  if (
+                    item[`strIngredient${i}`]?.toLowerCase().includes(query)
+                  ) {
+                    match = true;
+                    break;
+                  }
                 }
               }
             }
@@ -150,15 +159,27 @@ export default function SearchScreen() {
       });
     };
 
-    // Priority: Personal > Vault > General Cache
-    addToMap(myRecipes);
-    addToMap(vaultRecipes);
-    addToMap(allmeals);
+    //SCOPE LOGIC
+    if (searchScope === "personal") {
+      addToMap(myRecipes); // Only check Personal
+    } else {
+      // Global Scope: Check Everything
+      addToMap(myRecipes);
+      addToMap(vaultRecipes);
+      addToMap(allmeals);
+    }
 
     return Array.from(combinedMap.values());
-  }, [debouncedSearch, searchMode, myRecipes, vaultRecipes, allmeals]);
+  }, [
+    debouncedSearch,
+    searchMode,
+    searchScope,
+    myRecipes,
+    vaultRecipes,
+    allmeals,
+  ]);
 
-  //API Search (Network)
+  // API Search
   const { data: apiResults, isLoading: apiLoading } = useQuery({
     queryKey: ["search", debouncedSearch, searchMode],
     queryFn: async () => {
@@ -174,14 +195,14 @@ export default function SearchScreen() {
           strArea: searchMode === "area" ? debouncedSearch : item.strArea || "",
         }));
       } catch (_) {
-        // console.log("Search API Failed (Offline?)", error);
-        return []; // Return empty on fail so we still show local results
+        return [];
       }
     },
-    enabled: !!debouncedSearch,
+    // DISABLE API IF SCOPE IS PERSONAL
+    enabled: !!debouncedSearch && searchScope === "global",
   });
 
-  const isBrowsing = !debouncedSearch;
+  const isBrowsing = !debouncedSearch && searchScope === "global";
 
   const { data: browseData } = useQuery({
     queryKey: ["meals_browse"],
@@ -206,7 +227,6 @@ export default function SearchScreen() {
   const loadMoreMeals = async () => {
     if (!isBrowsing || isFetchingMore) return;
     setIsFetchingMore(true);
-
     try {
       const newMeals = await fetchMeals(8);
       const uniqueBatch = Array.from(
@@ -214,24 +234,22 @@ export default function SearchScreen() {
       );
       const existingIds = new Set(allmeals.map((m) => m.idMeal));
       const finalUnique = uniqueBatch.filter((m) => !existingIds.has(m.idMeal));
-
       if (finalUnique.length > 0) dispatch(appendMeals(finalUnique));
-    } catch (_) {
-      // ignore offline fetch error
-    }
+    } catch (_) {}
     setIsFetchingMore(false);
   };
 
   // MERGE & SORT
   const finalDisplayData = useMemo(() => {
     let data = [];
-    if (debouncedSearch) {
+
+    if (debouncedSearch || searchScope === "personal") {
       // Start with Local Results
       const localIds = new Set(localSearchResults.map((m) => m.idMeal));
       data = [...localSearchResults];
 
-      // Append API results that are NOT in local (avoid duplicates)
-      if (apiResults) {
+      // Append API results ONLY if Global Scope
+      if (searchScope === "global" && apiResults) {
         apiResults.forEach((item) => {
           if (!localIds.has(item.idMeal)) {
             data.push(item);
@@ -264,6 +282,7 @@ export default function SearchScreen() {
     allmeals,
     selectedCategory,
     sort,
+    searchScope,
   ]);
 
   const toggleFilters = () => {
@@ -311,8 +330,8 @@ export default function SearchScreen() {
             />
             <TextInput
               placeholder={
-                searchMode === "name"
-                  ? "Search recipes..."
+                searchScope === "personal"
+                  ? `Search my recipes by ${searchMode}...`
                   : `Search by ${searchMode}...`
               }
               value={search}
@@ -345,38 +364,88 @@ export default function SearchScreen() {
           </TouchableOpacity>
         </View>
 
-        {showFilters && search.length > 0 && (
-          <View style={styles.modeRow}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
-            >
-              {SEARCH_MODES.map((mode) => (
-                <TouchableOpacity
-                  key={mode.id}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: themeColors.chipBg,
-                      borderColor: themeColors.chipBorder,
-                    },
-                    searchMode === mode.id && styles.chipActive,
-                  ]}
-                  onPress={() => setSearchMode(mode.id)}
-                >
-                  <Text
+        {showFilters && (
+          <View>
+            {/*ROW 1: SCOPE (Global vs My Kitchen) */}
+            <View style={[styles.filterSection, { borderBottomWidth: 0 }]}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+              >
+                {SCOPES.map((scope) => (
+                  <TouchableOpacity
+                    key={scope.id}
                     style={[
-                      styles.chipText,
-                      { color: isDark ? "#ccc" : "#666" },
-                      searchMode === mode.id && styles.chipTextActive,
+                      styles.chip,
+                      {
+                        backgroundColor: themeColors.chipBg,
+                        borderColor: themeColors.chipBorder,
+                        borderWidth: 2,
+                      },
+                      searchScope === scope.id && styles.chipActive,
                     ]}
+                    onPress={() => setSearchScope(scope.id)}
                   >
-                    {mode.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                    <Ionicons
+                      name={scope.id === "personal" ? "home" : "globe-outline"}
+                      size={14}
+                      color={
+                        searchScope === scope.id
+                          ? "#FFF"
+                          : isDark
+                            ? "#ccc"
+                            : "#666"
+                      }
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: isDark ? "#ccc" : "#666" },
+                        searchScope === scope.id && styles.chipTextActive,
+                      ]}
+                    >
+                      {scope.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* ROW 2: CRITERIA (Name, Ingredient...) */}
+            <View style={styles.modeRow}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+              >
+                {SEARCH_MODES.map((mode) => (
+                  <TouchableOpacity
+                    key={mode.id}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: themeColors.chipBg,
+                        borderColor: themeColors.chipBorder,
+                      },
+                      searchMode === mode.id && styles.chipActive,
+                    ]}
+                    onPress={() => setSearchMode(mode.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: isDark ? "#ccc" : "#666" },
+                        searchMode === mode.id && styles.chipTextActive,
+                      ]}
+                    >
+                      {mode.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
           </View>
         )}
       </View>
@@ -418,57 +487,63 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      {/* CATEGORY FILTERS */}
-      {showFilters && !debouncedSearch && (
-        <View style={[styles.filterPanel, { backgroundColor: themeColors.bg }]}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-            Browse Categories
-          </Text>
-          {catLoading ? (
-            <LoadingChips />
-          ) : (
-            <FlatList
-              horizontal
-              data={catData || []}
-              keyExtractor={(item) => item.idCategory}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: themeColors.chipBg,
-                      borderColor: themeColors.chipBorder,
-                    },
-                    selectedCategory === item.strCategory && styles.chipActive,
-                  ]}
-                  onPress={() =>
-                    setSelectedCategory(
-                      selectedCategory === item.strCategory
-                        ? null
-                        : item.strCategory,
-                    )
-                  }
-                >
-                  <Text
+      {/* CATEGORY FILTERS (Only in Global Mode) */}
+      {showFilters &&
+        !debouncedSearch &&
+        searchScope === "global" &&
+        searchMode === "name" && (
+          <View
+            style={[styles.filterPanel, { backgroundColor: themeColors.bg }]}
+          >
+            <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+              Browse Categories
+            </Text>
+            {catLoading ? (
+              <LoadingChips />
+            ) : (
+              <FlatList
+                horizontal
+                data={catData || []}
+                keyExtractor={(item) => item.idCategory}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
                     style={[
-                      styles.chipText,
-                      { color: isDark ? "#ccc" : "#666" },
+                      styles.chip,
+                      {
+                        backgroundColor: themeColors.chipBg,
+                        borderColor: themeColors.chipBorder,
+                      },
                       selectedCategory === item.strCategory &&
-                        styles.chipTextActive,
+                        styles.chipActive,
                     ]}
+                    onPress={() =>
+                      setSelectedCategory(
+                        selectedCategory === item.strCategory
+                          ? null
+                          : item.strCategory,
+                      )
+                    }
                   >
-                    {item.strCategory}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
-          )}
-        </View>
-      )}
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: isDark ? "#ccc" : "#666" },
+                        selectedCategory === item.strCategory &&
+                          styles.chipTextActive,
+                      ]}
+                    >
+                      {item.strCategory}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        )}
 
-      {/* SHOW LOADING ONLY IF SEARCHING AND NO LOCAL RESULTS */}
+      {/* LOADING STATE */}
       {apiLoading && finalDisplayData.length === 0 ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#FF6347" />
@@ -517,7 +592,9 @@ export default function SearchScreen() {
               >
                 {debouncedSearch
                   ? "No matching recipes found."
-                  : "Start typing to search!"}
+                  : searchScope === "personal"
+                    ? "Start typing to search your kitchen!"
+                    : "Start typing to search!"}
               </Text>
             </View>
           }
@@ -565,7 +642,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterBtnActive: { backgroundColor: "#FF6347", borderColor: "#FF6347" },
-  modeRow: { marginTop: 5 },
+  modeRow: { marginTop: 8 },
+  filterSection: { paddingVertical: 5 },
   filterPanel: { paddingVertical: 10 },
   sectionTitle: {
     fontSize: 14,
@@ -574,6 +652,8 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   chip: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
