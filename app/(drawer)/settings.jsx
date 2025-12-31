@@ -25,6 +25,8 @@ import {
   setAllPersonalRecipes,
 } from "../../store/Slices/personalrecipesSlice";
 import { clearVault, setVaultItems } from "../../store/Slices/vaultSlice";
+import { getAllMeals } from "../../store/Slices/recipeSlice";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { File, Directory, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -32,6 +34,7 @@ import * as DocumentPicker from "expo-document-picker";
 
 export default function SettingsScreen() {
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
 
   // Redux States
   const isDark = useSelector((state) => state.preferences.darkMode);
@@ -66,17 +69,19 @@ export default function SettingsScreen() {
     recipes: false,
     vault: false,
     notes: false,
+    cache: false,
   });
 
   // --- HANDLERS ---
   const openDataModal = (type) => {
     setActionType(type);
-    // If Backup, default all to true. If Delete, default all to false (safety french fies).
+    // If Backup, default all (except cache) to true. If Delete, default all to false.
     const defaultState = type === "BACKUP";
     setSelection({
       recipes: defaultState,
       vault: defaultState,
       notes: defaultState,
+      cache: false,
     });
     setModalVisible(true);
   };
@@ -102,7 +107,6 @@ export default function SettingsScreen() {
       // Using fetch() is the most robust way to read a local file URI in JS without legacy libs
       const response = await fetch(fileUri);
       const fileContent = await response.text();
-
       const parsedData = JSON.parse(fileContent);
 
       if (!parsedData || typeof parsedData !== "object") {
@@ -156,21 +160,17 @@ export default function SettingsScreen() {
       if (Platform.OS === "android") {
         // ANDROID MODERN: Pick Directory -> Create File -> Write
         const directory = await Directory.pickDirectoryAsync();
-
         if (directory) {
           // Create the file in the chosen folder
           // The second argument 'application/json' is the MIME type
           const file = directory.createFile(fileName, "application/json");
-
           file.write(dataString);
-
           Alert.alert("Success", "Backup saved securely!");
         }
       } else {
         // iOS MODERN: Create in Docs -> Share
         // Paths.document gives us the app's document folder
         const file = new File(Paths.document, fileName);
-
         file.create();
         file.write(dataString);
 
@@ -201,22 +201,26 @@ export default function SettingsScreen() {
       return Alert.alert("Wait!", "Please select at least one item.");
     }
 
+    // Prepare human-readable list
     const itemsText = selectedKeys
-      .map((k) => k.charAt(0).toUpperCase() + k.slice(1))
+      .map((k) =>
+        k === "cache"
+          ? "Offline Cache"
+          : k.charAt(0).toUpperCase() + k.slice(1),
+      )
       .join(", ");
 
     if (actionType === "BACKUP") {
-      // ACTUAL BACKUP LOGIC (Export JSON)
+      // BACKUP LOGIC
       const backupData = {};
       if (selection.recipes) backupData.recipes = allRecipes;
       if (selection.vault) backupData.vault = allVault;
       if (selection.notes) backupData.notes = allNotes;
 
       const backupString = JSON.stringify(backupData, null, 2);
-
       await saveBackupFile(backupString);
     } else {
-      // ACTUAL DELETE LOGIC
+      // DELETE LOGIC
       Alert.alert("Final Warning", `Permanently delete: ${itemsText}?`, [
         { text: "Cancel", style: "cancel" },
         {
@@ -226,6 +230,10 @@ export default function SettingsScreen() {
             if (selection.recipes) dispatch(clearAllPersonalRecipes());
             if (selection.vault) dispatch(clearVault());
             if (selection.notes) dispatch(clearAllNotes());
+            if (selection.cache) {
+              dispatch(getAllMeals([]));
+              queryClient.removeQueries();
+            }
 
             Alert.alert("Deleted", "Selected data has been wiped.");
           },
@@ -289,6 +297,21 @@ export default function SettingsScreen() {
       )}
     </TouchableOpacity>
   );
+
+  // DYNAMIC TOGGLE LIST
+  const toggleItems = [
+    { key: "recipes", label: "My Recipes", icon: "restaurant" },
+    { key: "vault", label: "Favorites / Vault", icon: "heart" },
+    { key: "notes", label: "Personal Notes", icon: "document-text" },
+  ];
+
+  if (actionType === "DELETE") {
+    toggleItems.push({
+      key: "cache",
+      label: "Offline Cache",
+      icon: "cloud-offline",
+    });
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -426,15 +449,7 @@ export default function SettingsScreen() {
 
                 {/* Toggles */}
                 <View style={styles.toggleContainer}>
-                  {[
-                    { key: "recipes", label: "My Recipes", icon: "restaurant" },
-                    { key: "vault", label: "Favorites / Vault", icon: "heart" },
-                    {
-                      key: "notes",
-                      label: "Personal Notes",
-                      icon: "document-text",
-                    },
-                  ].map((item) => (
+                  {toggleItems.map((item) => (
                     <TouchableOpacity
                       key={item.key}
                       style={[styles.toggleRow, { borderColor: BORDER_COLOR }]}
