@@ -14,8 +14,8 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { useQueryClient } from "@tanstack/react-query";
 import { toggleAmoled, toggleTheme } from "../../store/Slices/preferencesSlice";
-
 import {
   clearAllNotes,
   setAllNotes,
@@ -25,12 +25,131 @@ import {
   setAllPersonalRecipes,
 } from "../../store/Slices/personalrecipesSlice";
 import { clearVault, setVaultItems } from "../../store/Slices/vaultSlice";
-import { getAllMeals } from "../../store/Slices/recipeSlice";
-import { useQueryClient } from "@tanstack/react-query";
-
+import { getAllMeals } from "../../store/Slices/recipeSlice"; // 🦍 2. Import Cache Nuke
 import { File, Directory, Paths } from "expo-file-system";
+import * as FileSystemLegacy from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import * as DocumentPicker from "expo-document-picker";
+
+// --- 🦍 HELPER FUNCTIONS FOR IMAGE CONVERSION ---
+
+const convertImagesToBase64 = async (recipes) => {
+  console.log("Starting Backup Conversion..."); // 🦍 Debug Log
+
+  return Promise.all(
+    recipes.map(async (recipe) => {
+      let newRecipe = { ...recipe };
+
+      const imagePath = newRecipe.image || newRecipe.strMealThumb;
+
+      if (imagePath && !imagePath.startsWith("http")) {
+        console.log("Found local image to convert:", imagePath); // 🦍 Log found paths
+
+        try {
+          const base64 = await FileSystemLegacy.readAsStringAsync(imagePath, {
+            encoding: FileSystemLegacy.EncodingType.Base64,
+          });
+
+          const dataString = `data:image/jpeg;base64,${base64}`;
+
+          newRecipe.image = dataString;
+          newRecipe.strMealThumb = dataString;
+
+          console.log("Success: Converted image for", newRecipe.strMeal);
+        } catch (_) {
+          // console.error("Backup Conversion Failed for:", newRecipe.strMeal, e);
+          // We don't null it here, we leave the path so at least the text backup works
+        }
+      } else {
+        // console.log("Skipping (No image or Web URL):", newRecipe.strMeal);
+      }
+      return newRecipe;
+    }),
+  );
+};
+
+const restoreImagesFromBase64 = async (recipes) => {
+  return Promise.all(
+    recipes.map(async (recipe) => {
+      let newRecipe = { ...recipe };
+
+      // Check if image is encoded data
+      if (newRecipe.image && newRecipe.image.startsWith("data:image")) {
+        try {
+          // console.log("Found backup image for:", newRecipe.strMeal);
+
+          const fileName = `restored_${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+
+          if (!FileSystemLegacy.documentDirectory) {
+            throw new Error("Document Directory is invalid");
+          }
+
+          const newPath = FileSystemLegacy.documentDirectory + fileName;
+
+          // Extract raw base64 string
+          const parts = newRecipe.image.split(",");
+          if (parts.length < 2) throw new Error("Invalid Base64 format");
+          const base64Data = parts[1];
+
+          // Write to file system
+          await FileSystemLegacy.writeAsStringAsync(newPath, base64Data, {
+            encoding: FileSystemLegacy.EncodingType.Base64,
+          });
+
+          // Verify file exists immediately
+          const info = await FileSystemLegacy.getInfoAsync(newPath);
+          if (!info.exists) throw new Error("File write verification failed");
+
+          newRecipe.image = newPath;
+        } catch (e) {
+          Alert.alert(
+            "Image Restore Failed",
+            `Could not restore image for ${newRecipe.strMeal}\n${e.message}`,
+          );
+          // console.log("Restore Error:", e);
+          // Keep the old string so we don't lose data, or set null?
+          // we keeping the null for now to prevent app crash on render
+          newRecipe.image = null;
+        }
+      } else if (newRecipe.image && newRecipe.image.startsWith("file://")) {
+        // If we see file:// here after a Clear Data, it means it's a broken link.
+        // Alert the user that they restored a Text-Only backup.
+        // (Optional: remove the broken link)
+        // console.log(
+        //   "Found broken link (Text-Only backup restored):",
+        //   newRecipe.image,
+        // );
+        newRecipe.image = null;
+      }
+
+      return newRecipe;
+    }),
+  );
+};
+
+const cleanupRecipeImages = async (recipes) => {
+  if (!recipes || recipes.length === 0) return;
+  console.log("Starting physical cleanup of images...");
+
+  for (const recipe of recipes) {
+    const imagePath = recipe.image || recipe.strMealThumb;
+
+    // Check if it's a local file (not http and not base64 data)
+    if (
+      imagePath &&
+      !imagePath.startsWith("http") &&
+      !imagePath.startsWith("data:")
+    ) {
+      try {
+        // idempotent: true means "don't crash if file is already gone"
+        await FileSystemLegacy.deleteAsync(imagePath, { idempotent: true });
+        console.log("Deleted physical file:", imagePath);
+      } catch (e) {
+        console.log("Could not delete file (might be system restricted):", e);
+      }
+    }
+  }
+};
 
 export default function SettingsScreen() {
   const dispatch = useDispatch();
@@ -64,7 +183,7 @@ export default function SettingsScreen() {
 
   // --- DATA MODAL STATE ---
   const [modalVisible, setModalVisible] = useState(false);
-  const [actionType, setActionType] = useState(null); // 'BACKUP' or 'DELETE'
+  const [actionType, setActionType] = useState(null);
   const [selection, setSelection] = useState({
     recipes: false,
     vault: false,
@@ -75,7 +194,6 @@ export default function SettingsScreen() {
   // --- HANDLERS ---
   const openDataModal = (type) => {
     setActionType(type);
-    // If Backup, default all (except cache) to true. If Delete, default all to false.
     const defaultState = type === "BACKUP";
     setSelection({
       recipes: defaultState,
@@ -90,71 +208,10 @@ export default function SettingsScreen() {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleRestore = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "application/json",
-        copyToCacheDirectory: true,
-      });
-
-      if (result.canceled) return;
-
-      const fileUri = result.assets[0].uri;
-
-      // Use Modern File API to read content
-      // Note: 'File' constructor expects a path, but URI from picker might need conversion on some platforms
-
-      // Using fetch() is the most robust way to read a local file URI in JS without legacy libs
-      const response = await fetch(fileUri);
-      const fileContent = await response.text();
-      const parsedData = JSON.parse(fileContent);
-
-      if (!parsedData || typeof parsedData !== "object") {
-        throw new Error("Invalid backup file format.");
-      }
-
-      Alert.alert(
-        "Confirm Restore",
-        "This will overwrite your current data with the backup. Are you sure?",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Yes, Restore",
-            onPress: () => processRestore(parsedData),
-          },
-        ],
-      );
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Failed to restore backup. Invalid JSON.");
-    }
-  };
-
-  const processRestore = (data) => {
-    let restoreCount = 0;
-
-    if (data.recipes && Array.isArray(data.recipes)) {
-      dispatch(setAllPersonalRecipes(data.recipes));
-      restoreCount++;
-    }
-    if (data.vault && Array.isArray(data.vault)) {
-      dispatch(setVaultItems(data.vault));
-      restoreCount++;
-    }
-    if (data.notes && typeof data.notes === "object") {
-      dispatch(setAllNotes(data.notes));
-      restoreCount++;
-    }
-
-    if (restoreCount > 0) {
-      Alert.alert("Success", "Data restored successfully!");
-    } else {
-      Alert.alert("Warning", "No valid data found in this backup file.");
-    }
-  };
-
   const saveBackupFile = async (dataString) => {
-    const fileName = `TastyTabs_Backup_${new Date().toISOString().split("T")[0]}.json`;
+    const fileName = `TastyTabs_Backup_${
+      new Date().toISOString().split("T")[0]
+    }.json`;
 
     try {
       if (Platform.OS === "android") {
@@ -194,6 +251,32 @@ export default function SettingsScreen() {
     }
   };
 
+  // THE MASTER BACKUP FUNCTION
+  const proceedWithBackup = async (includeImages) => {
+    try {
+      const backupData = {};
+
+      if (selection.recipes) {
+        if (includeImages) {
+          // Heavy mode: Convert files to string
+          backupData.recipes = await convertImagesToBase64(allRecipes);
+        } else {
+          // Light mode: Just raw data
+          backupData.recipes = allRecipes;
+        }
+      }
+
+      if (selection.vault) backupData.vault = allVault;
+      if (selection.notes) backupData.notes = allNotes;
+
+      const backupString = JSON.stringify(backupData, null, 2);
+      await saveBackupFile(backupString);
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Backup Error", "Could not generate backup file.");
+    }
+  };
+
   const executeAction = async () => {
     const selectedKeys = Object.keys(selection).filter((k) => selection[k]);
 
@@ -201,33 +284,53 @@ export default function SettingsScreen() {
       return Alert.alert("Wait!", "Please select at least one item.");
     }
 
-    // Prepare human-readable list
-    const itemsText = selectedKeys
-      .map((k) =>
-        k === "cache"
-          ? "Offline Cache"
-          : k.charAt(0).toUpperCase() + k.slice(1),
-      )
-      .join(", ");
-
+    // --- BACKUP FLOW ---
     if (actionType === "BACKUP") {
-      // BACKUP LOGIC
-      const backupData = {};
-      if (selection.recipes) backupData.recipes = allRecipes;
-      if (selection.vault) backupData.vault = allVault;
-      if (selection.notes) backupData.notes = allNotes;
+      if (selection.recipes) {
+        // Ask about images
+        Alert.alert(
+          "Include Local Images?",
+          "Backing up images makes the file much larger but lets you restore photos on other devices.\n\n(Web images are always saved).",
+          [
+            {
+              text: "Text Only (Small)",
+              onPress: () => proceedWithBackup(false),
+            },
+            {
+              text: "Include Images",
+              onPress: () => proceedWithBackup(true),
+            },
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+          ],
+        );
+      } else {
+        // No recipes selected, just proceed
+        await proceedWithBackup(false);
+      }
+    }
+    // --- DELETE FLOW ---
+    else {
+      const itemsText = selectedKeys
+        .map((k) =>
+          k === "cache"
+            ? "Offline Cache"
+            : k.charAt(0).toUpperCase() + k.slice(1),
+        )
+        .join(", ");
 
-      const backupString = JSON.stringify(backupData, null, 2);
-      await saveBackupFile(backupString);
-    } else {
-      // DELETE LOGIC
       Alert.alert("Final Warning", `Permanently delete: ${itemsText}?`, [
         { text: "Cancel", style: "cancel" },
         {
           text: "Yes, Delete",
           style: "destructive",
-          onPress: () => {
-            if (selection.recipes) dispatch(clearAllPersonalRecipes());
+          onPress: async () => {
+            if (selection.recipes) {
+              await cleanupRecipeImages(allRecipes);
+              dispatch(clearAllPersonalRecipes());
+            }
             if (selection.vault) dispatch(clearVault());
             if (selection.notes) dispatch(clearAllNotes());
             if (selection.cache) {
@@ -243,7 +346,67 @@ export default function SettingsScreen() {
     setModalVisible(false);
   };
 
-  // HELPER COMPONENT FOR SETTINGS ROW
+  const handleRestore = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/json",
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const fileUri = result.assets[0].uri;
+      const response = await fetch(fileUri);
+      const fileContent = await response.text();
+      const parsedData = JSON.parse(fileContent);
+
+      if (!parsedData || typeof parsedData !== "object") {
+        throw new Error("Invalid backup file format.");
+      }
+
+      Alert.alert(
+        "Confirm Restore",
+        "This will overwrite your current data with the backup. Are you sure?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Yes, Restore",
+            onPress: () => processRestore(parsedData),
+          },
+        ],
+      );
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to restore backup. Invalid JSON.");
+    }
+  };
+
+  const processRestore = async (data) => {
+    let restoreCount = 0;
+
+    if (data.recipes && Array.isArray(data.recipes)) {
+      // RESTORE IMAGES: Convert strings back to files
+      const fixedRecipes = await restoreImagesFromBase64(data.recipes);
+      dispatch(setAllPersonalRecipes(fixedRecipes));
+      restoreCount++;
+    }
+    if (data.vault && Array.isArray(data.vault)) {
+      dispatch(setVaultItems(data.vault));
+      restoreCount++;
+    }
+    if (data.notes && typeof data.notes === "object") {
+      dispatch(setAllNotes(data.notes));
+      restoreCount++;
+    }
+
+    if (restoreCount > 0) {
+      Alert.alert("Success", "Data restored successfully!");
+    } else {
+      Alert.alert("Warning", "No valid data found in this backup file.");
+    }
+  };
+
+  // --- UI COMPONENTS ---
   const SettingRow = ({
     icon,
     label,
@@ -319,7 +482,6 @@ export default function SettingsScreen() {
         style={[styles.container, dynamicStyles.container]}
         contentContainerStyle={{ paddingBottom: 50 }}
       >
-        {/* HEADER */}
         <View style={[styles.header, { backgroundColor: BG_COLOR }]}>
           <Text style={[styles.headerTitle, dynamicStyles.text]}>Settings</Text>
         </View>
@@ -431,7 +593,6 @@ export default function SettingsScreen() {
               <View
                 style={[styles.modalContent, { backgroundColor: MODAL_BG }]}
               >
-                {/* Header */}
                 <View style={styles.modalHeader}>
                   <Text style={[styles.modalTitle, dynamicStyles.text]}>
                     {actionType === "BACKUP"
@@ -572,8 +733,6 @@ const styles = StyleSheet.create({
   },
   appName: { fontSize: 24, fontWeight: "800", marginTop: 10 },
   version: { fontSize: 14, marginTop: 4 },
-
-  // MODAL STYLES
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",
