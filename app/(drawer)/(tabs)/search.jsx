@@ -59,8 +59,13 @@ export default function SearchScreen() {
   const isDark = useSelector((state) => state.preferences.darkMode);
   const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
+  // SELECTORS: Grab EVERYTHING we have locally
   const { allmeals } = useSelector((state) => state.recipe);
   const myRecipes = useSelector((state) => state.personalrecipes.allmyrecipes);
+  const vaultRecipes = useSelector((state) => {
+    const v = state.vault;
+    return Array.isArray(v) ? v : v.items || [];
+  });
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -80,11 +85,9 @@ export default function SearchScreen() {
     bg: getThemeColor("#F8F9FA", "#121212", "#000000"),
     headerBg: getThemeColor("#fff", "#121212", "#000000"),
     border: getThemeColor("#f0f0f0", "#333", "#222"),
-    // Search Bar needs to stand out against Black
     searchBg: getThemeColor("#F5F5F5", "#1E1E1E", "#121212"),
     text: isDark ? "#fff" : "#333",
     subText: isDark ? "#aaa" : "#999",
-    // Cards/Chips darker in Amoled but visible
     cardBg: getThemeColor("#FFF", "#1E1E1E", "#121212"),
     borderColor: getThemeColor("#E0E0E0", "#333", "#222"),
     chipBg: getThemeColor("#FFF", "#1E1E1E", "#121212"),
@@ -107,39 +110,73 @@ export default function SearchScreen() {
     return () => clearTimeout(handler);
   }, [search]);
 
-  const filteredPersonalRecipes = useMemo(() => {
+  // UNIFIED LOCAL SEARCH (Cache + Vault + Personal)
+  const localSearchResults = useMemo(() => {
     if (!debouncedSearch) return [];
     const query = debouncedSearch.toLowerCase();
 
-    return myRecipes.filter((recipe) => {
-      if (searchMode === "name")
-        return recipe.strMeal.toLowerCase().includes(query);
-      if (searchMode === "category")
-        return recipe.strCategory.toLowerCase().includes(query);
-      if (searchMode === "area")
-        return recipe.strArea.toLowerCase().includes(query);
-      if (searchMode === "ingredient") {
-        return recipe.ingredients.some((ing) =>
-          ing.name.toLowerCase().includes(query),
-        );
-      }
-      return false;
-    });
-  }, [debouncedSearch, searchMode, myRecipes]);
+    // Map ensures no duplicates if a meal is in Vault AND Cache
+    const combinedMap = new Map();
 
+    const addToMap = (list) => {
+      list.forEach((item) => {
+        if (!combinedMap.has(item.idMeal)) {
+          let match = false;
+
+          if (searchMode === "name") {
+            match = item.strMeal?.toLowerCase().includes(query);
+          } else if (searchMode === "category") {
+            match = item.strCategory?.toLowerCase().includes(query);
+          } else if (searchMode === "area") {
+            match = item.strArea?.toLowerCase().includes(query);
+          } else if (searchMode === "ingredient") {
+            // Check both personal format (array) and API format (strIngredientX)
+            if (item.ingredients && Array.isArray(item.ingredients)) {
+              match = item.ingredients.some((i) =>
+                i.name.toLowerCase().includes(query),
+              );
+            } else {
+              for (let i = 1; i <= 20; i++) {
+                if (item[`strIngredient${i}`]?.toLowerCase().includes(query)) {
+                  match = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (match) combinedMap.set(item.idMeal, item);
+        }
+      });
+    };
+
+    // Priority: Personal > Vault > General Cache
+    addToMap(myRecipes);
+    addToMap(vaultRecipes);
+    addToMap(allmeals);
+
+    return Array.from(combinedMap.values());
+  }, [debouncedSearch, searchMode, myRecipes, vaultRecipes, allmeals]);
+
+  //API Search (Network)
   const { data: apiResults, isLoading: apiLoading } = useQuery({
     queryKey: ["search", debouncedSearch, searchMode],
     queryFn: async () => {
       if (!debouncedSearch) return null;
-      const results = await searchGlobal(debouncedSearch, searchMode);
-
-      // Patch data
-      return results.map((item) => ({
-        ...item,
-        strCategory:
-          searchMode === "category" ? debouncedSearch : item.strCategory || "",
-        strArea: searchMode === "area" ? debouncedSearch : item.strArea || "",
-      }));
+      try {
+        const results = await searchGlobal(debouncedSearch, searchMode);
+        return results.map((item) => ({
+          ...item,
+          strCategory:
+            searchMode === "category"
+              ? debouncedSearch
+              : item.strCategory || "",
+          strArea: searchMode === "area" ? debouncedSearch : item.strArea || "",
+        }));
+      } catch (_) {
+        // console.log("Search API Failed (Offline?)", error);
+        return []; // Return empty on fail so we still show local results
+      }
     },
     enabled: !!debouncedSearch,
   });
@@ -170,24 +207,39 @@ export default function SearchScreen() {
     if (!isBrowsing || isFetchingMore) return;
     setIsFetchingMore(true);
 
-    const newMeals = await fetchMeals(8);
-    // bouncer
-    const uniqueBatch = Array.from(
-      new Map(newMeals.map((m) => [m.idMeal, m])).values(),
-    );
-    const existingIds = new Set(allmeals.map((m) => m.idMeal));
-    const finalUnique = uniqueBatch.filter((m) => !existingIds.has(m.idMeal));
+    try {
+      const newMeals = await fetchMeals(8);
+      const uniqueBatch = Array.from(
+        new Map(newMeals.map((m) => [m.idMeal, m])).values(),
+      );
+      const existingIds = new Set(allmeals.map((m) => m.idMeal));
+      const finalUnique = uniqueBatch.filter((m) => !existingIds.has(m.idMeal));
 
-    if (finalUnique.length > 0) dispatch(appendMeals(finalUnique));
+      if (finalUnique.length > 0) dispatch(appendMeals(finalUnique));
+    } catch (_) {
+      // ignore offline fetch error
+    }
     setIsFetchingMore(false);
   };
 
+  // MERGE & SORT
   const finalDisplayData = useMemo(() => {
     let data = [];
     if (debouncedSearch) {
-      const apiItems = apiResults || [];
-      data = [...filteredPersonalRecipes, ...apiItems];
+      // Start with Local Results
+      const localIds = new Set(localSearchResults.map((m) => m.idMeal));
+      data = [...localSearchResults];
+
+      // Append API results that are NOT in local (avoid duplicates)
+      if (apiResults) {
+        apiResults.forEach((item) => {
+          if (!localIds.has(item.idMeal)) {
+            data.push(item);
+          }
+        });
+      }
     } else {
+      // Browsing Mode
       data = [...allmeals];
       if (selectedCategory)
         data = data.filter((m) => m.strCategory === selectedCategory);
@@ -208,7 +260,7 @@ export default function SearchScreen() {
   }, [
     debouncedSearch,
     apiResults,
-    filteredPersonalRecipes,
+    localSearchResults,
     allmeals,
     selectedCategory,
     sort,
@@ -348,7 +400,6 @@ export default function SearchScreen() {
               onPress={() => setSort(type)}
               style={[
                 styles.sortBtn,
-                // Sort Buttons: Light = EEE, Dark = 333, Amoled = 222
                 { backgroundColor: getThemeColor("#EEE", "#333", "#222") },
                 sort === type && styles.sortBtnActive,
               ]}
@@ -367,7 +418,7 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      {/* CATEGORY FILTERS (Only show if browsing & filters on) */}
+      {/* CATEGORY FILTERS */}
       {showFilters && !debouncedSearch && (
         <View style={[styles.filterPanel, { backgroundColor: themeColors.bg }]}>
           <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
@@ -417,7 +468,8 @@ export default function SearchScreen() {
         </View>
       )}
 
-      {apiLoading ? (
+      {/* SHOW LOADING ONLY IF SEARCHING AND NO LOCAL RESULTS */}
+      {apiLoading && finalDisplayData.length === 0 ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#FF6347" />
           <Text style={{ color: themeColors.subText, marginTop: 10 }}>
@@ -437,12 +489,14 @@ export default function SearchScreen() {
           onEndReached={loadMoreMeals}
           onEndReachedThreshold={0.5}
           ListHeaderComponent={
-            debouncedSearch && filteredPersonalRecipes.length > 0 ? (
+            debouncedSearch && finalDisplayData.length > 0 ? (
               <View style={{ padding: 16, paddingBottom: 0 }}>
                 <Text
                   style={{ fontSize: 18, fontWeight: "bold", color: "#FF6347" }}
                 >
-                  From Your Kitchen ({filteredPersonalRecipes.length})
+                  {apiLoading
+                    ? "Found locally (Searching web...)"
+                    : `Found ${finalDisplayData.length} matches`}
                 </Text>
               </View>
             ) : null
@@ -493,7 +547,6 @@ const styles = StyleSheet.create({
     gap: 10,
     height: 60,
   },
-
   searchContainer: {
     flex: 1,
     flexDirection: "row",
@@ -503,7 +556,6 @@ const styles = StyleSheet.create({
     height: 45,
   },
   searchInput: { flex: 1, fontSize: 15, height: "100%" },
-
   filterBtn: {
     width: 45,
     height: 45,
@@ -513,9 +565,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterBtnActive: { backgroundColor: "#FF6347", borderColor: "#FF6347" },
-
   modeRow: { marginTop: 5 },
-
   filterPanel: { paddingVertical: 10 },
   sectionTitle: {
     fontSize: 14,
@@ -523,7 +573,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 16,
   },
-
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -533,14 +582,12 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: "#FF6347", borderColor: "#FF6347" },
   chipText: { fontWeight: "600", fontSize: 12 },
   chipTextActive: { color: "#FFF" },
-
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 50,
   },
-
   sortRow: {
     flexDirection: "row",
     justifyContent: "space-between",
