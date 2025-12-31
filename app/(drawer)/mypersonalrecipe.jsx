@@ -146,9 +146,9 @@ export default function Mypersonalrecipe() {
         if (selectionType === "recipe") setRecipeImage(permanentUri);
         else setIngredientImage(permanentUri);
 
-        console.log("Image secured at:", permanentUri);
-      } catch (error) {
-        console.error("Heist failed, falling back to temp uri:", error);
+        // console.log("Image secured at:", permanentUri);
+      } catch (_) {
+        // console.error("falling back to temp uri:", error);
         // Fallback: If moving fails, use the temp one so the UI doesn't break immediately
         if (selectionType === "recipe") setRecipeImage(tempUri);
         else setIngredientImage(tempUri);
