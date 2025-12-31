@@ -83,10 +83,13 @@ function CustomVVIPHeader() {
       }
     } catch (_) {
       setLoading(false);
-      Alert.alert(
-        "Connection Error",
-        "Could not fetch a lucky recipe. Check your internet!",
-      );
+      setModalVisible(false);
+      setTimeout(() => {
+        Alert.alert(
+          "Connection Error",
+          "Could not fetch a lucky recipe. Check your internet!",
+        );
+      }, 100);
       return false;
     }
   };
