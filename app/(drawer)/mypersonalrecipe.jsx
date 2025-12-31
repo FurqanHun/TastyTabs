@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
 import { useState } from "react";
 import {
   Alert,
@@ -124,11 +125,34 @@ export default function Mypersonalrecipe() {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.5,
+      quality: 1,
     });
     if (!result.canceled) {
-      if (selectionType === "recipe") setRecipeImage(result.assets[0].uri);
-      else setIngredientImage(result.assets[0].uri);
+      const tempUri = result.assets[0].uri;
+
+      // Generate a permanent home for this file
+      // We grab the filename (e.g., "img-pikapika.jpg") and append it to the Document Directory
+      const fileName = tempUri.split("/").pop();
+      const permanentUri = FileSystem.documentDirectory + fileName;
+
+      try {
+        // Move the file from Cache -> Document Directory
+        await FileSystem.moveAsync({
+          from: tempUri,
+          to: permanentUri,
+        });
+
+        // Save the SAFE URI to state
+        if (selectionType === "recipe") setRecipeImage(permanentUri);
+        else setIngredientImage(permanentUri);
+
+        console.log("Image secured at:", permanentUri);
+      } catch (error) {
+        console.error("Heist failed, falling back to temp uri:", error);
+        // Fallback: If moving fails, use the temp one so the UI doesn't break immediately
+        if (selectionType === "recipe") setRecipeImage(tempUri);
+        else setIngredientImage(tempUri);
+      }
     }
   };
 

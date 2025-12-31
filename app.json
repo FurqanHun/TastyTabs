@@ -43,6 +43,12 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to allow you to upload your own recipes."
+        }
       ]
     ],
     "experiments": {
