@@ -124,7 +124,7 @@ export default function PrivacyPolicy() {
             contact:
           </Text>
           <Text style={[styles.email, { color: theme.accent }]}>
-            furqanhun@proton.me
+            faabswear@protonmail.com
           </Text>
           <Text style={[styles.disclaimer, { color: theme.subText }]}>
             © 2025 TastyTabs. All rights reserved.

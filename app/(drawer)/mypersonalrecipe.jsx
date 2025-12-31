@@ -125,7 +125,7 @@ export default function Mypersonalrecipe() {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.8,
     });
     if (!result.canceled) {
       const tempUri = result.assets[0].uri;

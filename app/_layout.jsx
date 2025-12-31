@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
@@ -13,8 +13,25 @@ import {
 } from "@react-navigation/native";
 import { StatusBar } from "react-native";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+
 SplashScreen.preventAutoHideAsync();
-const queryClient = new QueryClient();
+
+// Configure Client to actually keep data
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      gcTime: 1000 * 60 * 60 * 24 * 30, // 30 Days
+    },
+  },
+});
+
+// Create the Bridge to Disk
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+});
 
 const AmoledTheme = {
   ...DarkTheme,
@@ -43,7 +60,7 @@ function MainLayout() {
     <ThemeProvider value={activeTheme}>
       <StatusBar
         barStyle={isDark ? "light-content" : "dark-content"}
-        // 🦍 StatusBar Background: Black vs Dark Grey
+        // StatusBar Background: Black vs Dark Grey
         backgroundColor={
           isDark ? (isAmoled ? "#000000" : "#121212") : "transparent"
         }
@@ -88,13 +105,15 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister: asyncStoragePersister }}
+    >
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-          {/*Render the MainLayout INSIDE the Provider */}
           <MainLayout />
         </PersistGate>
       </Provider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

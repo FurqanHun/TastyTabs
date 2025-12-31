@@ -36,7 +36,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/shortlogo.png",
-          "imageWidth": 150,
+          "imageWidth": 100,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
@@ -48,6 +48,16 @@
         "expo-image-picker",
         {
           "photosPermission": "The app accesses your photos to allow you to upload your own recipes."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraGradleProps": {
+              "AsyncStorage_db_size_in_MB": "200"
+            }
+          }
         }
       ]
     ],
