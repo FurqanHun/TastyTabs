@@ -19,7 +19,7 @@ import { fetchCategories } from "../../../api/fetchcategories";
 import { fetchMeals } from "../../../api/listallmeals";
 import { searchGlobal } from "../../../api/search";
 import { MealCard } from "../../../components/MealCard";
-import { appendMeals, getAllMeals } from "../../../store/Slices/recipeSlice";
+import { appendMeals } from "../../../store/Slices/recipeSlice";
 
 const SEARCH_MODES = [
   { id: "name", label: "Name" },
@@ -29,7 +29,8 @@ const SEARCH_MODES = [
 ];
 
 const SCOPES = [
-  { id: "global", label: "Everything" },
+  { id: "global", label: "Global" }, // Web + Cache
+  { id: "cache", label: "Cache" }, // Cache ONLY (Offline mode)
   { id: "personal", label: "My Kitchen" },
 ];
 
@@ -64,7 +65,7 @@ export default function SearchScreen() {
   const isDark = useSelector((state) => state.preferences.darkMode);
   const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
-  // SELECTORS: Grab EVERYTHING we have locally
+  // SELECTORS
   const { allmeals } = useSelector((state) => state.recipe);
   const myRecipes = useSelector((state) => state.personalrecipes.allmyrecipes);
   const vaultRecipes = useSelector((state) => {
@@ -114,22 +115,24 @@ export default function SearchScreen() {
 
   // UNIFIED LOCAL SEARCH (Cache + Vault + Personal)
   const localSearchResults = useMemo(() => {
-    // If searching Personal, we allow empty query (show all personal recipes)
-    if (!debouncedSearch && searchScope !== "personal") return [];
+    // If not searching and not in targeted scope, return empty
+    const isTargeted = searchScope === "personal" || searchScope === "cache";
+    if (!debouncedSearch && !isTargeted) return [];
 
     const query = debouncedSearch.toLowerCase();
     const combinedMap = new Map();
 
     const addToMap = (list) => {
+      if (!list) return;
       list.forEach((item) => {
         if (!combinedMap.has(item.idMeal)) {
           let match = false;
 
-          // If showing My Kitchen with no text -> Show All
-          if (!debouncedSearch && searchScope === "personal") {
+          // Empty search in targeted scopes = Show All
+          if (!debouncedSearch && isTargeted) {
             match = true;
           } else {
-            // Apply Criteria (Name, Ingredient, etc.)
+            // Check Criteria
             if (searchMode === "name") {
               match = item.strMeal?.toLowerCase().includes(query);
             } else if (searchMode === "category") {
@@ -159,11 +162,10 @@ export default function SearchScreen() {
       });
     };
 
-    //SCOPE LOGIC
     if (searchScope === "personal") {
-      addToMap(myRecipes); // Only check Personal
+      addToMap(myRecipes);
     } else {
-      // Global Scope: Check Everything
+      // Global AND Cache scopes check EVERYTHING local
       addToMap(myRecipes);
       addToMap(vaultRecipes);
       addToMap(allmeals);
@@ -198,9 +200,21 @@ export default function SearchScreen() {
         return [];
       }
     },
-    // DISABLE API IF SCOPE IS PERSONAL
+    // 🦍 DISABLE API if scope is Cache OR Personal
     enabled: !!debouncedSearch && searchScope === "global",
   });
+
+  // 🦍 5. GREEDY CAPTURE: Steal API results and put them in Redux Cache
+  useEffect(() => {
+    if (apiResults && apiResults.length > 0) {
+      const newItems = apiResults.filter(
+        (apiItem) => !allmeals.some((local) => local.idMeal === apiItem.idMeal),
+      );
+      if (newItems.length > 0) {
+        dispatch(appendMeals(newItems));
+      }
+    }
+  }, [apiResults, allmeals, dispatch]);
 
   const isBrowsing = !debouncedSearch && searchScope === "global";
 
@@ -215,7 +229,7 @@ export default function SearchScreen() {
       const unique = Array.from(
         new Map(browseData.map((m) => [m.idMeal, m])).values(),
       );
-      dispatch(getAllMeals(unique));
+      dispatch(appendMeals(unique));
     }
   }, [browseData, dispatch, isBrowsing]);
 
@@ -243,12 +257,15 @@ export default function SearchScreen() {
   const finalDisplayData = useMemo(() => {
     let data = [];
 
-    if (debouncedSearch || searchScope === "personal") {
-      // Start with Local Results
+    const showLocal =
+      debouncedSearch || searchScope === "personal" || searchScope === "cache";
+
+    if (showLocal) {
+      // Grab Local Results (which now includes captured API results)
       const localIds = new Set(localSearchResults.map((m) => m.idMeal));
       data = [...localSearchResults];
 
-      // Append API results ONLY if Global Scope
+      // Append Live API Results (Only if Global Scope)
       if (searchScope === "global" && apiResults) {
         apiResults.forEach((item) => {
           if (!localIds.has(item.idMeal)) {
@@ -332,7 +349,9 @@ export default function SearchScreen() {
               placeholder={
                 searchScope === "personal"
                   ? `Search my recipes by ${searchMode}...`
-                  : `Search by ${searchMode}...`
+                  : searchScope === "cache"
+                    ? `Search downloaded by ${searchMode}...`
+                    : `Search by ${searchMode}...`
               }
               value={search}
               onChangeText={handleSearchTextChange}
@@ -366,7 +385,7 @@ export default function SearchScreen() {
 
         {showFilters && (
           <View>
-            {/*ROW 1: SCOPE (Global vs My Kitchen) */}
+            {/* ROW 1: SCOPE */}
             <View style={[styles.filterSection, { borderBottomWidth: 0 }]}>
               <ScrollView
                 horizontal
@@ -388,7 +407,13 @@ export default function SearchScreen() {
                     onPress={() => setSearchScope(scope.id)}
                   >
                     <Ionicons
-                      name={scope.id === "personal" ? "home" : "globe-outline"}
+                      name={
+                        scope.id === "personal"
+                          ? "home"
+                          : scope.id === "cache"
+                            ? "save"
+                            : "globe-outline"
+                      }
                       size={14}
                       color={
                         searchScope === scope.id
@@ -413,7 +438,7 @@ export default function SearchScreen() {
               </ScrollView>
             </View>
 
-            {/* ROW 2: CRITERIA (Name, Ingredient...) */}
+            {/* ROW 2: CRITERIA */}
             <View style={styles.modeRow}>
               <ScrollView
                 horizontal
@@ -487,7 +512,7 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      {/* CATEGORY FILTERS (Only in Global Mode) */}
+      {/* CATEGORY FILTERS */}
       {showFilters &&
         !debouncedSearch &&
         searchScope === "global" &&
@@ -594,7 +619,9 @@ export default function SearchScreen() {
                   ? "No matching recipes found."
                   : searchScope === "personal"
                     ? "Start typing to search your kitchen!"
-                    : "Start typing to search!"}
+                    : searchScope === "cache"
+                      ? "Nothing in cache. Search Global first!"
+                      : "Start typing to search!"}
               </Text>
             </View>
           }
