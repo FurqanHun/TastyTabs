@@ -29,8 +29,7 @@ const SEARCH_MODES = [
 ];
 
 const SCOPES = [
-  { id: "global", label: "Global" }, // Web + Cache
-  { id: "cache", label: "Cache" }, // Cache ONLY (Offline mode)
+  { id: "global", label: "Global" },
   { id: "personal", label: "My Kitchen" },
 ];
 
@@ -115,8 +114,7 @@ export default function SearchScreen() {
 
   // UNIFIED LOCAL SEARCH (Cache + Vault + Personal)
   const localSearchResults = useMemo(() => {
-    // If not searching and not in targeted scope, return empty
-    const isTargeted = searchScope === "personal" || searchScope === "cache";
+    const isTargeted = searchScope === "personal";
     if (!debouncedSearch && !isTargeted) return [];
 
     const query = debouncedSearch.toLowerCase();
@@ -165,7 +163,6 @@ export default function SearchScreen() {
     if (searchScope === "personal") {
       addToMap(myRecipes);
     } else {
-      // Global AND Cache scopes check EVERYTHING local
       addToMap(myRecipes);
       addToMap(vaultRecipes);
       addToMap(allmeals);
@@ -200,11 +197,11 @@ export default function SearchScreen() {
         return [];
       }
     },
-    // 🦍 DISABLE API if scope is Cache OR Personal
+    // DISABLE API if scope is Personal
     enabled: !!debouncedSearch && searchScope === "global",
   });
 
-  // 🦍 5. GREEDY CAPTURE: Steal API results and put them in Redux Cache
+  // GREEDY CAPTURE: Steal API results and put them in Redux Cache
   useEffect(() => {
     if (apiResults && apiResults.length > 0) {
       const newItems = apiResults.filter(
@@ -257,9 +254,7 @@ export default function SearchScreen() {
   const finalDisplayData = useMemo(() => {
     let data = [];
 
-    const showLocal =
-      debouncedSearch || searchScope === "personal" || searchScope === "cache";
-
+    const showLocal = debouncedSearch || searchScope === "personal";
     if (showLocal) {
       // Grab Local Results (which now includes captured API results)
       const localIds = new Set(localSearchResults.map((m) => m.idMeal));
@@ -349,9 +344,7 @@ export default function SearchScreen() {
               placeholder={
                 searchScope === "personal"
                   ? `Search my recipes by ${searchMode}...`
-                  : searchScope === "cache"
-                    ? `Search downloaded by ${searchMode}...`
-                    : `Search by ${searchMode}...`
+                  : `Search by ${searchMode}...`
               }
               value={search}
               onChangeText={handleSearchTextChange}
@@ -407,13 +400,7 @@ export default function SearchScreen() {
                     onPress={() => setSearchScope(scope.id)}
                   >
                     <Ionicons
-                      name={
-                        scope.id === "personal"
-                          ? "home"
-                          : scope.id === "cache"
-                            ? "save"
-                            : "globe-outline"
-                      }
+                      name={scope.id === "personal" ? "home" : "globe-outline"}
                       size={14}
                       color={
                         searchScope === scope.id
@@ -619,9 +606,7 @@ export default function SearchScreen() {
                   ? "No matching recipes found."
                   : searchScope === "personal"
                     ? "Start typing to search your kitchen!"
-                    : searchScope === "cache"
-                      ? "Nothing in cache. Search Global first!"
-                      : "Start typing to search!"}
+                    : "Start typing to search!"}
               </Text>
             </View>
           }

@@ -14,13 +14,16 @@
     "splash": {
       "image": "./assets/images/shortlogo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff",
+      "dark": {
+        "backgroundColor": "#000000"
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff",
+        "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/shortlogo.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "monochromeImage": "./assets/images/shortlogo.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -36,10 +39,11 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/shortlogo.png",
-          "imageWidth": 100,
+          "imageWidth": 150,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
+            "image": "./assets/images/shortlogo.png",
             "backgroundColor": "#000000"
           }
         }
@@ -47,7 +51,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos to allow you to upload your own recipes."
+          "photosPermission": "The app accesses your photos to allow you to upload (more like copy it in app storage) your own recipes."
         }
       ],
       [

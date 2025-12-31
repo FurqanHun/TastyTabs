@@ -57,7 +57,8 @@ TastyTabs/
 │   │   │   ├── index.jsx     # Home Screen
 │   │   │   ├── search.jsx    # Search Screen
 │   │   │   └── vault.jsx       # Favorites Screen
-│   │   └── mypersonalrecipe.jsx # My Personal Recipe Screen
+│   │   ├── mypersonalrecipe.jsx # My Personal Recipe Screen
+│   │   ├── privacypolicy.jsx # Privacy Policy Screen
 │   │   └── settings.jsx      # Settings Screen
 │   ├── recipe/               # Stack Navigation Group
 │   │   └── [id].tsx          # Dynamic Recipe Detail Page
@@ -73,7 +74,8 @@ TastyTabs/
 ├── components/                      # Atomic UI Components
     └── MealCard.jsx                 # Meal Card Component
 └── api/                             # API client (Axios/Fetch)
-    └── mealdetail.js                # Meal Detail API Client
-    └── listallmeals.js              # List All Meals API Client 
-    └── fetchcategory.js             # Fetch Category API Client
+    ├── mealdetail.js                # Meal Detail API Client
+    ├── listallmeals.js              # List All Meals API Client 
+    ├── fetchcategory.js             # Fetch Category API Client
+    └── search.js                    # Search API Client
 ```
