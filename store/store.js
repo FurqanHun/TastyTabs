@@ -23,14 +23,11 @@ const createNoopStorage = () => {
   };
 };
 
-// Agar window undefined hai (Server pe), toh noop use karo, warna AsyncStorage
 const storage =
   typeof window !== "undefined" ? AsyncStorage : createNoopStorage();
-// --- SSR Fix End ---
-
 const persistConfig = {
   key: "root",
-  storage, // Yahan hamara naya 'storage' logic use ho raha hai
+  storage,
   whitelist: ["vault", "personalNotes", "personalrecipes", "preferences"],
 };
 
@@ -49,7 +46,7 @@ export const store = configureStore({
 
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false, // Persist ke liye zaroori hai
+      serializableCheck: false, // imp for persistence
     }),
 });
 

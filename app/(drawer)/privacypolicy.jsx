@@ -14,15 +14,12 @@ import { useSelector } from "react-redux";
 export default function PrivacyPolicy() {
   const router = useRouter();
 
-  // 🦍 1. GET BOTH STATES
   const isDark = useSelector((state) => state.preferences.darkMode);
   const isAmoled = useSelector((state) => state.preferences.amoledMode);
 
-  // 🦍 2. HELPER
   const getThemeColor = (light, dark, amoled) =>
     isDark ? (isAmoled ? amoled : dark) : light;
 
-  // 🦍 3. DYNAMIC THEME COLORS (Clean Monke Style)
   const theme = {
     bg: getThemeColor("#F8F9FA", "#121212", "#000000"),
     card: getThemeColor("#FFFFFF", "#1E1E1E", "#121212"),
@@ -82,7 +79,6 @@ export default function PrivacyPolicy() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topInfo}>
-          {/* 🦍 REMOVED PINK CIRCLE BACKGROUND */}
           <Ionicons
             name="shield-checkmark"
             size={60}
@@ -168,8 +164,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 24,
     marginBottom: 16,
-    borderWidth: 1, // 🦍 ADDED BORDER FOR STRUCTURE
-    // 🦍 REMOVED HEAVY SHADOWS
+    borderWidth: 1,
   },
   sectionHeader: {
     flexDirection: "row",

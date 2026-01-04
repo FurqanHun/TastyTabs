@@ -26,7 +26,7 @@ import { appendMeals } from "../../store/Slices/recipeSlice";
 // Stable Constants
 const CACHE_KEY = "TASTYTABS_LUCKY_PICK_OBJ";
 const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 Hours
-// const CACHE_DURATION = 10 * 1000; // 🦍 10 Sec Test Mode
+// const CACHE_DURATION = 10 * 1000; //10 Sec Test Mode
 
 const formatTime = (ms) => {
   const totalSeconds = Math.floor(ms / 1000);

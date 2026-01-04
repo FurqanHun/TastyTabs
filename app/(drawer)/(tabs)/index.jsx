@@ -34,7 +34,7 @@ export default function Index() {
   const { width } = useWindowDimensions();
   const numColumns = width > 900 ? 3 : width > 600 ? 2 : 1;
 
-  // 🦍 THE BOUNCERRRRRRR
+  //THE BOUNCERRRRRRR
   const mealsData = rawData
     ? Array.from(new Map(rawData.map((item) => [item.idMeal, item])).values())
     : [];

@@ -25,16 +25,16 @@ import {
   setAllPersonalRecipes,
 } from "../../store/Slices/personalrecipesSlice";
 import { clearVault, setVaultItems } from "../../store/Slices/vaultSlice";
-import { getAllMeals } from "../../store/Slices/recipeSlice"; // 🦍 2. Import Cache Nuke
+import { getAllMeals } from "../../store/Slices/recipeSlice";
 import { File, Directory, Paths } from "expo-file-system";
 import * as FileSystemLegacy from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import * as DocumentPicker from "expo-document-picker";
 
-// --- 🦍 HELPER FUNCTIONS FOR IMAGE CONVERSION ---
+// --- HELPER FUNCTIONS FOR IMAGE CONVERSION ---
 
 const convertImagesToBase64 = async (recipes) => {
-  console.log("Starting Backup Conversion..."); // 🦍 Debug Log
+  // console.log("Starting Backup Conversion...");
 
   return Promise.all(
     recipes.map(async (recipe) => {
@@ -43,7 +43,7 @@ const convertImagesToBase64 = async (recipes) => {
       const imagePath = newRecipe.image || newRecipe.strMealThumb;
 
       if (imagePath && !imagePath.startsWith("http")) {
-        console.log("Found local image to convert:", imagePath); // 🦍 Log found paths
+        // console.log("Found local image to convert:", imagePath);
 
         try {
           const base64 = await FileSystemLegacy.readAsStringAsync(imagePath, {
@@ -129,7 +129,7 @@ const restoreImagesFromBase64 = async (recipes) => {
 
 const cleanupRecipeImages = async (recipes) => {
   if (!recipes || recipes.length === 0) return;
-  console.log("Starting physical cleanup of images...");
+  // console.log("Starting physical cleanup of images...");
 
   for (const recipe of recipes) {
     const imagePath = recipe.image || recipe.strMealThumb;
@@ -143,9 +143,9 @@ const cleanupRecipeImages = async (recipes) => {
       try {
         // idempotent: true means "don't crash if file is already gone"
         await FileSystemLegacy.deleteAsync(imagePath, { idempotent: true });
-        console.log("Deleted physical file:", imagePath);
-      } catch (e) {
-        console.log("Could not delete file (might be system restricted):", e);
+        // console.log("Deleted physical file:", imagePath);
+      } catch (_) {
+        // console.log("Could not delete file (might be system restricted):", e);
       }
     }
   }
@@ -243,11 +243,11 @@ export default function SettingsScreen() {
         }
       }
     } catch (e) {
-      console.error(e);
+      // console.error(e);
       if (e.message?.includes("cancelled")) {
         return;
       }
-      Alert.alert("Error", "Failed to save backup. " + e.message);
+      Alert.alert("Error", "Failed to save backup.");
     }
   };
 
@@ -271,8 +271,8 @@ export default function SettingsScreen() {
 
       const backupString = JSON.stringify(backupData, null, 2);
       await saveBackupFile(backupString);
-    } catch (error) {
-      console.error(error);
+    } catch (_) {
+      // console.error(error);
       Alert.alert("Backup Error", "Could not generate backup file.");
     }
   };
@@ -375,8 +375,8 @@ export default function SettingsScreen() {
           },
         ],
       );
-    } catch (error) {
-      console.error(error);
+    } catch (_) {
+      // console.error(error);
       Alert.alert("Error", "Failed to restore backup. Invalid JSON.");
     }
   };

@@ -73,8 +73,8 @@ export default function RootLayout() {
     async function prepare() {
       try {
         await new Promise((resolve) => setTimeout(resolve, 2000));
-      } catch (e) {
-        console.warn(e);
+      } catch (_) {
+        // console.warn(e);
       } finally {
         setAppIsReady(true);
         await SplashScreen.hideAsync();

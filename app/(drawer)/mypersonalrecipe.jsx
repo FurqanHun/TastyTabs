@@ -385,7 +385,6 @@ export default function Mypersonalrecipe() {
                 )}
               </TouchableOpacity>
 
-              {/* 🦍 FIX: ADDED URL INPUT WITH CLEAR BUTTON */}
               <View
                 style={[
                   styles.ytInputRow,
@@ -413,14 +412,14 @@ export default function Mypersonalrecipe() {
                     },
                   ]}
                   placeholder="Or paste Image URL..."
-                  // 🦍 Logic: Show text only if it's NOT a local file. Allows typing.
+                  //Logic: Show text only if it's NOT a local file. Allows typing.
                   value={
                     !recipeImage?.startsWith("file://") ? recipeImage || "" : ""
                   }
                   onChangeText={setRecipeImage}
                   placeholderTextColor={theme.placeholder}
                 />
-                {/* 🦍 Clear Button Logic: Show if it's a URL/Text (not a file) and not empty */}
+                {/*Clear Button Logic: Show if it's a URL/Text (not a file) and not empty */}
                 {recipeImage && !recipeImage.startsWith("file://") && (
                   <TouchableOpacity onPress={() => setRecipeImage(null)}>
                     <Ionicons
