@@ -31,7 +31,10 @@ The app connects to **TheMealDB API** to fetch global culinary data and uses a l
   * **Update:** Edit personal recipe details and ratings.
   * **Delete:** Remove personal recipes from your collection.
 
-
+* Data Management (Selective):
+  * **Backup:** Export your notes, vault or personal recipes data to a JSON file.
+  * **Restore:** Import a JSON file to restore your data.
+  * **Delete:** Remove all data from local storage.
 
 ---
 
